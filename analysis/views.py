@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from espn_api.football import League
+import plotly.express as px
 import pandas as pd
 
 def index(request):
@@ -11,8 +12,6 @@ def index(request):
         total_opp_rank_dic[team.team_id] = {"team_name" : team.team_name, "opp_rank_list" : list(), "opp_rank_sum": 0}
 
     num_weeks = 7
-
-    rand_team_name = team.team_name
 
     for i in range(1, num_weeks + 1):
         box_scores = league.box_scores(week=i)
@@ -49,10 +48,13 @@ def index(request):
     df_columns = ["Team", "Week", "BI"]
 
     df = pd.DataFrame(all_scores_matrix, columns=df_columns)
+
+    fig = px.bar(df, x="Team", y="BI", color="Week", title="BI")
+    graph = fig.to_html(full_html=False, default_height=500, default_width=700)
         
     context = {
             'random': 0,
-            'random_team' : rand_team_name
+            'graph': graph
     }
     # Render the HTML template index.html with the data in the context variable
     return render(request, 'index.html', context=context)
