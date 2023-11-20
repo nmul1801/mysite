@@ -3,5 +3,5 @@
 {% block content %}
   <h1>Fantasy Football Analysis</h1>
   <h2>{{ team_list_ex }}</h2>
-  {{ random_team }}
+  {{ graph|safe }}
 {% endblock %}
