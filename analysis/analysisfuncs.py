@@ -21,7 +21,7 @@ def construct_team_dic_sleeper(league_id):
     for ros in rosters_ob:
         roster_dic[ros['roster_id']]['user_id'] = ros['owner_id']
 
-    r = requests.get(url="https://api.sleeper.app/v1/league/988223204793614336/users")
+    r = requests.get(url="https://api.sleeper.app/v1/league/" + str(league_id) + "/users")
     json_ob = json.loads(r.text)
 
     for team_ob in json_ob:
@@ -30,7 +30,7 @@ def construct_team_dic_sleeper(league_id):
 
     for i in range(1, num_weeks + 1):
         weekly_dic = {}
-        r = requests.get(url="https://api.sleeper.app/v1/league/988223204793614336/matchups/" + str(i))
+        r = requests.get(url="https://api.sleeper.app/v1/league/" + str(league_id) + "/matchups/" + str(i))
         matchup_ob = json.loads(r.text)
 
         for match_ob in matchup_ob:
