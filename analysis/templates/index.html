@@ -1,6 +1,125 @@
 {% extends "base_generic.html" %}
-
+{% load static %}
 {% block content %}
-  <h2>{{ team_list_ex }}</h2>
-  {{ graph|safe }}
+  <link rel="stylesheet" href="{% static 'css/indexstyle.css' %}"> 
+  <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+ 
+  <div class="col-md-6 offset-md-3">
+    <h1 class="mt-4 text-center">Fantasy Football Analysis</h1>
+    <p class="ms-4 text-center">Highly recommended to do this on a Desktop computer. Finding, copying and pasting things on mobi Fill out the form below to get info luck in your league</p>
+    <input type="hidden" id="error_code" value={{ error_code }}>
+    
+    <form name="leagueform" id="leagueform" class="m-auto p-3" action="/analysis/analysis/" method="get">
+      
+      <table class="w-50 m-auto" cellspacing="5" cellpadding="5">
+        <tr id="err_text_col">
+          <td colspan="2">
+            <h3 class="text-danger text-center">Invalid Input</h3>
+            <p class="mt-2 text-center">There was an error finding your league, double check the info below and resubmit</p>
+          </td>
+        </tr>
+        <tr>
+          <td class="text-center">
+            <label for="plat">Platform: </label>
+          </td>
+          <td>
+            <label for="espn">ESPN</label>
+            <input onchange="updateForm()" id="espn" type="radio" name="platform" value="espn" checked>
+            <label class="ms-2" for="espn">Sleeper</label>
+            <input onchange="updateForm()" id="sleeper" type="radio" name="platform" value="sleeper">
+          </td> 
+        </tr>
+          <td class="text-end">
+            <label for="id">League ID: </label>
+          </td>
+          <td>
+            <input id="id" type="text" name="id">
+          </td>
+          <tr class="espn-info">
+            <td class="text-end"><label for="swid">SWID: </label></td>
+            <td><input id="swid" type="text" name="swid" colspan="3"></td>
+          </tr>
+          <tr class="espn-info">
+            <td class="text-end"><label for="s2">S2: </label></td>
+            <td colspan="50"><input cols="40" rows="2" id="s2" type="text" name="s2"></td>
+          </tr>
+        <tr>
+          <td colspan="2"><input class="w-100 btn btn-primary" type="submit" value="See Analysis"></td>
+        </tr>
+        <tr>
+          <td colspan="2"><input class="w-100 btn btn-primary" onclick="submitExample()" value="View Example"></td>
+        </tr>
+      </table>
+    </form>
+
+    <div id="sleeper-instructions">
+      <h2 class="mt-4">League ID</h2>
+      <p>To get your League ID, log into your Sleeper account, select your preferred league, then copy the id from the URL after 'league'</p>
+      <img class="w-100" src="{% static 'img/leagueidsleeper.png' %}">
+    </div>
+    <div id="espn-instructions">
+      <h2 class="mt-4">League ID</h2>
+      <p>To get your League ID, log into your ESPN account in Chrome (doesn't necessarily need to be Chrome, but the images below will look different in other browsers). Once logged in, copy the number after "leagueId" in the URL</p>
+      <img class="w-100" src="{% static 'img/leagueid.png' %}">
+
+      <h2 class="mt-4">SWID and S2</h2>
+      <p>SWID and S2 are both in your browsers cookies. So while still logged in to your ESPN account, right click anywhere on the page, then click "Inspect"</p>
+      <div class="d-flex justify-content-center">
+        <img class="w-25" src="{% static 'img/inspect.png' %}">
+      </div>
+      <p>After the menu pops up, select the "Application" tab</p>
+      <img class="w-100" src="{% static 'img/application.png' %}">
+      <p>You should then see a large table with columns "Name" and "Value". Scroll down the list until you find the values corresponding to the names "SWID", and "espn_s2". Or use the search box. Do not include brackets '{}' for the SWID</p>
+      <p>SWID: </p>
+      <img class="w-100" src="{% static 'img/SWID.png' %}">
+      <p>espn_s2: </p>
+      <img class="w-100" src="{% static 'img/S2.png' %}">
+    </div>
+    
+    <script>
+      $(document).ready(function() {
+        updateForm()
+      })
+      function submitExample() {
+
+        var form = document.getElementById("leagueform");
+        form.platform.value = "sleeper";
+        form.id.value = "988223204793614336";
+        form.submit();
+      }
+      function updateForm() {
+        var espn_button = document.getElementById('espn');
+        var espn_info_items = document.querySelectorAll('.espn-info');
+        var sleeper_instructions = document.getElementById('sleeper-instructions');
+        var espn_instructions = document.getElementById('espn-instructions');
+
+        var error_code = document.getElementById('error_code');
+        var error_col = document.getElementById('err_text_col');
+
+        console.log(error_code.value);
+
+        if (error_code.value == "1") {
+          error_col.style.display = 'table-row';
+        } else {
+          error_col.style.display = 'none';
+        }
+
+        if (espn_button.checked) {
+          sleeper_instructions.style.display = 'none'
+          espn_instructions.style.display = 'block'
+          for (var i = 0; i < espn_info_items.length; i++) {
+            espn_info_items[i].style.display = 'table-row';
+          }
+        } else {
+          sleeper_instructions.style.display = 'block'
+          espn_instructions.style.display = 'none'
+          for (var i = 0; i < espn_info_items.length; i++) {
+            espn_info_items[i].style.display = 'none';
+          }
+        }
+      }  
+    </script>
+  </div>
+
+  </div>
 {% endblock %}
