@@ -8,25 +8,28 @@ import json
 
 # sleeper team dictionary construction
 def construct_team_dic_sleeper(league_id):
-
     num_weeks = get_num_weeks_sleeper(league_id)
-    
+
+    r = requests.get(url="https://api.sleeper.app/v1/league/" + str(league_id))
+    league_ob = json.loads(r.text)
+
     r = requests.get(url="https://api.sleeper.app/v1/league/" + str(league_id) + "/rosters")
     rosters_ob = json.loads(r.text)
 
-    user_dic = {ros['owner_id']: {"roster_id": ros['roster_id']} for ros in rosters_ob}
+    r = requests.get(url="https://api.sleeper.app/v1/league/" + str(league_id) + "/users")
+    users_ob = json.loads(r.text)
+    user_id_to_disp_name = {o['user_id'] : o['display_name'] for o in users_ob}
 
-    roster_dic = {ros['roster_id']: {"opp_rank_list" : list(), "rank_list" : list(), "ew_list": list(), "BI_list": list(), "score_list": list(), "win_list": list()} for ros in rosters_ob}
+    roster_dic = dict({ros['roster_id']: {"opp_rank_list" : list(), "rank_list" : list(), "ew_list": list(), "BI_list": list(), "score_list": list(), "win_list": list()} for ros in rosters_ob})
+    mapping_wins = {"W": 1, "T": 0.5, "L": 0}
 
     for ros in rosters_ob:
-        roster_dic[ros['roster_id']]['user_id'] = ros['owner_id']
-
-    r = requests.get(url="https://api.sleeper.app/v1/league/" + str(league_id) + "/users")
-    json_ob = json.loads(r.text)
-
-    for team_ob in json_ob:
-        cur_roster_num = user_dic[team_ob['user_id']]['roster_id']
-        roster_dic[cur_roster_num]['team_name'] = team_ob['display_name']
+        cur_roster_num = ros['roster_id']
+        roster_dic[cur_roster_num]['team_name'] = user_id_to_disp_name[ros['owner_id']]
+        roster_dic[cur_roster_num]['win_list'] = [mapping_wins[g] for g in ros['metadata']['record']]
+        # remove every other match from the win list
+        if league_ob['settings']['league_average_match'] == 1:
+            roster_dic[cur_roster_num]['win_list'] = roster_dic[cur_roster_num]['win_list'][::2]
 
     for i in range(1, num_weeks + 1):
         weekly_dic = {}
@@ -45,30 +48,18 @@ def construct_team_dic_sleeper(league_id):
             cur_m_id = weekly_dic[k]['matchup_id']
             if cur_m_id in matchup_dic:
                 other_team_dic = weekly_dic[matchup_dic[cur_m_id]]  
-
                 weekly_dic[k]['opp_rank'] = other_team_dic['rank']
                 other_team_dic['opp_rank'] = rank
-                if weekly_dic[k]['score'] > other_team_dic['score']:
-                    other_team_dic['win'] = 0
-                    weekly_dic[k]['win'] = 1
-                elif weekly_dic[k]['score'] < other_team_dic['score']:
-                    other_team_dic['win'] = 1
-                    weekly_dic[k]['win'] = 0
-                else:
-                    other_team_dic['win'] = 0.5
-                    weekly_dic[k]['win'] = 0.5
-                    
             else:
                 matchup_dic[weekly_dic[k]['matchup_id']] = k
 
         for r in roster_dic:
             roster_dic[r]['rank_list'].append(weekly_dic[r]['rank'])
             roster_dic[r]['opp_rank_list'].append(weekly_dic[r]['opp_rank'])
-            roster_dic[r]['win_list'].append(weekly_dic[r]['win'])
         
     for t in roster_dic:
         roster_dic[t]["BI_list"] = [len(roster_dic) - r + 1 for r in roster_dic[t]['opp_rank_list']]
-        roster_dic[t]["ew_list"] = [round(r / len(roster_dic), 2) for r in roster_dic[t]['rank_list']]
+        roster_dic[t]["ew_list"] = [round((len(roster_dic) - r) / (len(roster_dic) - 1), 2) for r in roster_dic[t]['rank_list']]
 
     return roster_dic, num_weeks
 
