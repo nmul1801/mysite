@@ -67,7 +67,7 @@ def get_num_weeks_sleeper(league_id):
     r = requests.get(url="https://api.sleeper.app/v1/league/" + str(league_id))
     league_ob = json.loads(r.text)
     p_start = league_ob['settings']['playoff_week_start']
-    return min(get_cur_finished_nfl_week(), p_start - 1)
+    return p_start - 1
 
 def create_rank_list(num_list):
     ranked_list = [1]
@@ -91,13 +91,13 @@ def get_ew_diff_list(master_dic):
 
 def get_cur_finished_nfl_week():
     res_nfl = requests.get(url="https://api.sleeper.app/v1/state/nfl")
-    nfl_ob = json.loads(res_nfl.text)
+    nfl_ob = json.loads(res_nfl.text)    
     return nfl_ob['week'] - 1
 
 def construct_team_dic(league):
     cur_nfl_week = get_cur_finished_nfl_week()
     reg_szn_games = league.settings.reg_season_count
-    num_weeks = min(reg_szn_games, cur_nfl_week)
+    num_weeks = reg_szn_games
     
     master_dic = {}
     for team in league.teams:
@@ -188,7 +188,7 @@ def get_luck_graph(master_dic, num_weeks):
 
 
     for team in ew_diff_list:
-        z_score = team[1] / math.sqrt(variance)
+        z_score = team[1] / math.sqrt(variance) if variance != 0 else 0
         p = norm.cdf(z_score)
         luck = "Below Zero"
         if p > 0.5:
