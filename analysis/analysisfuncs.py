@@ -6,13 +6,38 @@ import statistics
 import requests
 import json
 
+# espn league construction
+# all we need to return is dict with team name, opp_id_list, win list, scores
+def construct_raw_team_dic_espn(league):
+    cur_nfl_week = get_cur_finished_nfl_week()
+    reg_szn_games = league.settings.reg_season_count
+    num_weeks = reg_szn_games
+
+    master_dic = {}
+    for team in league.teams:
+        master_dic[team.team_id] = {"team_name" : team.team_name, 
+                                "opp_id_list": list(),
+                                "rank_list": list(),
+                                "score_list" : team.scores}
+        master_dic[team.team_id]["win_list"] = list(map(lambda x: 1 if x == 'W' else 0, team.outcomes))
+
+    for i in range(1, num_weeks + 1):
+        for box_score in league.box_scores(week=i):
+            home_id, away_id = box_score.home_team.team_id, box_score.away_team.team_id
+
+            master_dic[home_id]["opp_id_list"].append(away_id)
+            master_dic[away_id]["opp_id_list"].append(home_id)
+
+    return master_dic, num_weeks
+
 # sleeper team dictionary construction
-def construct_team_dic_sleeper(league_id):
+# all we need to return is dict with team name, opp_id_list, win list, scores
+def construct_raw_team_dic_sleeper(league_id):
     num_weeks = get_num_weeks_sleeper(league_id)
 
     r = requests.get(url="https://api.sleeper.app/v1/league/" + str(league_id))
     league_ob = json.loads(r.text)
-
+    
     r = requests.get(url="https://api.sleeper.app/v1/league/" + str(league_id) + "/rosters")
     rosters_ob = json.loads(r.text)
 
@@ -20,48 +45,69 @@ def construct_team_dic_sleeper(league_id):
     users_ob = json.loads(r.text)
     user_id_to_disp_name = {o['user_id'] : o['display_name'] for o in users_ob}
 
-    roster_dic = dict({ros['roster_id']: {"opp_rank_list" : list(), "rank_list" : list(), "ew_list": list(), "BI_list": list(), "score_list": list(), "win_list": list()} for ros in rosters_ob})
+    roster_dic = dict({ros['roster_id']: {"opp_rank_list" : list(), 
+                                          "rank_list" : list(), 
+                                          "ew_list": list(), 
+                                          "BI_list": list(), 
+                                          "score_list": list(),
+                                          "opp_id_list": list(), 
+                                          "win_list": list()} for ros in rosters_ob})
     mapping_wins = {"W": 1, "T": 0.5, "L": 0}
 
     for ros in rosters_ob:
         cur_roster_num = ros['roster_id']
+        # team name
         roster_dic[cur_roster_num]['team_name'] = user_id_to_disp_name[ros['owner_id']]
+        # win list
         roster_dic[cur_roster_num]['win_list'] = [mapping_wins[g] for g in ros['metadata']['record']]
         # remove every other match from the win list
         if league_ob['settings']['league_average_match'] == 1:
             roster_dic[cur_roster_num]['win_list'] = roster_dic[cur_roster_num]['win_list'][::2]
 
+    # loop thru all weeks
     for i in range(1, num_weeks + 1):
-        weekly_dic = {}
         r = requests.get(url="https://api.sleeper.app/v1/league/" + str(league_id) + "/matchups/" + str(i))
         matchup_ob = json.loads(r.text)
 
+        matchcup_dic = {}
+        # iterate thru all matches for given week
         for match_ob in matchup_ob:
+            m_id, r_id = match_ob['matchup_id'], match_ob['roster_id']
+            # score list
             roster_dic[match_ob['roster_id']]['score_list'].append(match_ob['points'])
-            weekly_dic[match_ob['roster_id']] = {'score': match_ob['points'], 'matchup_id': match_ob['matchup_id']}
-        
-        weekly_dic = dict(sorted(weekly_dic.items(), key=lambda item: item[1]['score'], reverse=True))
-        matchup_dic = {}
-        for r, k in enumerate(weekly_dic):
-            rank = r + 1
-            weekly_dic[k]['rank'] = rank
-            cur_m_id = weekly_dic[k]['matchup_id']
-            if cur_m_id in matchup_dic:
-                other_team_dic = weekly_dic[matchup_dic[cur_m_id]]  
-                weekly_dic[k]['opp_rank'] = other_team_dic['rank']
-                other_team_dic['opp_rank'] = rank
+            # opponent id list
+            if m_id in matchcup_dic:
+                roster_dic[r_id]['opp_id_list'].append(matchcup_dic[m_id])
+                roster_dic[matchcup_dic[m_id]]['opp_id_list'].append(r_id)
             else:
-                matchup_dic[weekly_dic[k]['matchup_id']] = k
-
-        for r in roster_dic:
-            roster_dic[r]['rank_list'].append(weekly_dic[r]['rank'])
-            roster_dic[r]['opp_rank_list'].append(weekly_dic[r]['opp_rank'])
-        
-    for t in roster_dic:
-        roster_dic[t]["BI_list"] = [len(roster_dic) - r + 1 for r in roster_dic[t]['opp_rank_list']]
-        roster_dic[t]["ew_list"] = [round((len(roster_dic) - r) / (len(roster_dic) - 1), 2) for r in roster_dic[t]['rank_list']]
+                matchcup_dic[m_id] = r_id
 
     return roster_dic, num_weeks
+
+# after getting all info from team dictionary, extrapolate other analysis
+def construct_team_dic(team_dic, num_weeks):
+    # rank list
+    for i in range(num_weeks):
+        weekly_id_scores_dic = {k : {'score': team_dic[k]['score_list'][i]} for k in team_dic}
+        weekly_id_scores_dic = dict(sorted(weekly_id_scores_dic.items(), key=lambda x: x[1]['score'], reverse=True))
+        scores_isolated = [weekly_id_scores_dic[k]['score'] for k in weekly_id_scores_dic]
+        rank_list = create_rank_list(scores_isolated)
+        for i, ros_id in enumerate(weekly_id_scores_dic):
+            team_dic[ros_id]['rank_list'].append(rank_list[i])
+
+    # opponent_rank_list
+    for r_id in team_dic:
+        opp_rank_list = list()
+        for i, opp_id in enumerate(team_dic[r_id]['opp_id_list']):
+            opp_rank_list.append(team_dic[opp_id]['rank_list'][i])
+        team_dic[r_id]['opp_rank_list'] = opp_rank_list
+
+    # BI and ew
+    for t in team_dic:
+        team_dic[t]["BI_list"] = [len(team_dic) - r + 1 for r in team_dic[t]['opp_rank_list']]
+        team_dic[t]["ew_list"] = [round((len(team_dic) - r) / (len(team_dic) - 1), 2) for r in team_dic[t]['rank_list']]
+    
+    return team_dic, num_weeks
 
 def get_num_weeks_sleeper(league_id):
     r = requests.get(url="https://api.sleeper.app/v1/league/" + str(league_id))
@@ -94,48 +140,6 @@ def get_cur_finished_nfl_week():
     nfl_ob = json.loads(res_nfl.text)    
     return nfl_ob['week'] - 1
 
-def construct_team_dic(league):
-    cur_nfl_week = get_cur_finished_nfl_week()
-    reg_szn_games = league.settings.reg_season_count
-    num_weeks = reg_szn_games
-    
-    master_dic = {}
-    for team in league.teams:
-        master_dic[team.team_id] = {"team_name" : team.team_name, "opp_rank_list" : list(), "rank_list" : list(), "ew_list": list(), "BI_list": list(),"score_list" : team.scores}
-        filtered_outcomes = list(map(lambda x: 1 if x == 'W' else 0, team.outcomes))
-        master_dic[team.team_id]["win_list"] = filtered_outcomes
-
-    # assemble ranking dic
-    for i in range(num_weeks):
-        # list of tuples, (id, weekly score)
-        weekly_id_score_pairs = list()
-        for key in master_dic:
-            weekly_id_score_pairs.append((key, master_dic[key]["score_list"][i]))
-        weekly_id_score_pairs.sort(key=lambda team: team[1], reverse=True)
-        rank_list = create_rank_list(list(map(lambda x : x[1], weekly_id_score_pairs)))
-
-        for i, tup in enumerate(weekly_id_score_pairs):
-            master_dic[tup[0]]["rank_list"].append(rank_list[i])
-            ew = (len(league.teams) - rank_list[i]) / (len(league.teams) - 1)
-            master_dic[tup[0]]["ew_list"].append(round(ew, 2))
-
-
-    for i in range(1, num_weeks + 1):
-        box_scores = league.box_scores(week=i)
-
-        for box_score in box_scores:
-            home_id, away_id = box_score.home_team.team_id, box_score.away_team.team_id
-
-            home_rank = master_dic[home_id]["rank_list"][i - 1]
-            away_rank = master_dic[away_id]["rank_list"][i - 1]
-            # opponent rank
-            master_dic[home_id]["opp_rank_list"].append(away_rank)
-            master_dic[away_id]["opp_rank_list"].append(home_rank)
-
-            master_dic[home_id]["BI_list"].append(len(league.teams) - away_rank + 1)
-            master_dic[away_id]["BI_list"].append(len(league.teams) - home_rank + 1)
-
-    return master_dic, num_weeks
 
 def get_expected_wins_graph(master_dic, num_weeks):
     all_team_list = list()

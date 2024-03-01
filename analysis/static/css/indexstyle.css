@@ -1,15 +1,32 @@
 body {
-    background-color: rgb(173, 173, 173);
+    background-color: #000000;
+    color: #FFFFFF;
+    font-family: Inter, sans-serif;
+}
+
+h1 {
+    font-family: Inter, sans-serif;
+    
+}
+
+.title {
+    color: #6A0DAD;
+}
+
+btn {
+    background-color: #C0C0C0;
 }
 
 #leagueform {
-    background-color: white;
+    background-color: #6A0DAD;
     border-radius: 10px;
+    color: white;
 }
+
 img {
     margin: 10px;
 }
 
-#espn-info {
-    background-color: red;
+input {
+    border-radius: 5px;
 }

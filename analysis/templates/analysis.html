@@ -2,7 +2,7 @@
 {% load static %}
 {% block content %}
     <link rel="stylesheet" href="{% static 'css/analysisstyle.css' %}"> 
-    <div class="mt-4 col-md-6 offset-md-3">
+    <div class="mt-4 col-md-8 offset-md-2">
         <h1 class="text-center">Analysis</h1>
         <p class="mt-3">Note that leagues are treated as having one match per week. So for leagues with a league average match, this result is filtered out of their wins.</p>
         <p class="mt-3">
@@ -12,7 +12,11 @@
             6th on a given week, then their E(W) is 0.5. If a team ranks firs, E(W) = 1, and if they
             rank last, E(W) = 0.
         </p>
-        {{ exp_wins_g|safe }}
+        <div id="expected_win_container">
+            <button onclick="toggleLegend(expected_win_container)">Toggle Legend</button>
+            {{ exp_wins_g|safe }}
+        </div>
+    
         <p class="mt-3">
             Combining expected wins with actual wins can give us a better idea of how 
             lucky/unlucky a team is. For example, if a team could have only beaten one other team 
@@ -22,6 +26,7 @@
             week, and you get an idea of how lucky a team has been overall, where a negative number
             indicates a team has been unlucky, and a positive number indicates a team has been lucky.
         </p>
+
         {{ ew_diff_g|safe }}
         <p class="mt-3">
             Taking the total of [W - E(W)] for all weeks, we can find the likelihood of this difference
@@ -31,20 +36,93 @@
             E(W) = W, so W - E(W) = 0. The teams that had a [W - E(W)] above zero (more lucky) are farther left, and 
             the teams with a [W - E(W)] below zero (more unlucky) are to the right.
         </p>
-        {{ luck_g|safe }}
+        <div id="luck_container">
+            <button onclick="toggleLegend(luck_container)">Toggle Legend</button>
+            {{ luck_g|safe }}
+        </div>
         <p class="mt-3">
             Bonage index aims to capture how much a team gets boned each week. A team's BI is calculated by the 
             following: size of league - weekly rank of opponent + 1. For example, if a team in a 10 man league matches 
             up against the team that ends up scoring the second most points that week, their BI would be 10 - 2 + 1,
             giving them a BI of 9 that week.
         </p>
-        {{ bi_g|safe }}
+        <div id="bi_container">
+            <button onclick="toggleLegend(bi_container)">Toggle Legend</button>
+            {{ bi_g|safe }}
+        </div>
         <p class="mt-3">
             Standard deviation over a team's scores all season measures their consistency. More consistent teams are toward the
             bottom, while less cosistent teams are toward the top.
         </p>
-        {{ consistency_g|safe }}
+        <div id="consistency_container">
+            <button onclick="toggleLegend(consistency_container)">Toggle Legend</button>
+            {{ consistency_g|safe }}
+        </div>
+        <table id="sleepers">
+            <tr><th>Position</th><th colspan="2">Name</th><th>PP</th><th>PR</th><th>SS</th>
+            {% for pos, player in sleepers_dict.items%}
+                <small>
+                    <tr>
+                        <td>{{pos}}</td>
+                        <td><img class="player_img" src="https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/{{ player.id }}.png&w=48&h=35&cb=1"></td>
+                        <td>{{player.first_init}}. {{player.last_name}}</td>
+                        <td>{{player.position_pick}}</td>
+                        <td>{{player.pos_rank}}</td>
+                        <td>{{player.sleeper_score}}</td>
+                    </tr>
+                </small>
+            {% endfor %}
+        </table>
+        {{ league_pos_rank|safe }}
+        {{first_half_pos_rank|safe}}
+        {{second_half_pos_rank|safe}}
+        <table id="draft_injuries">
+            <tr>
+                <th></th>
+                {% for name in teams_list%}
+                    <th>{{name}}</th>
+                {% endfor %}    
+            </tr>
+            {% for r_num, d_picks in draft_round_dict.items%}
+                {% with length=d_picks|length %}
+                <tr {% if r_num|divisibleby:2 %} style="background-color: #f2f2f2;" {% endif %}>
+                <td rowspan={{length}}>Rd {{r_num}}</td>
+                {% endwith %}
+                {% for pick_row in d_picks%}
+                    {% if not forloop.counter == 1 %} <tr {% if r_num|divisibleby:2 %} style="background-color: #f2f2f2;" {% endif %}> {% endif %}
+                    {% for pick in pick_row %}
+                        {% if pick == None%}
+                            <td></td>
+                        {% else %}
+                            <td onclick="toggleTooltip(this)" style="background-color: {{pick.bg_color}};">
+                                <span class="tooltiptext">{{pick.name}}, missed {{pick.percent_inj}}% of games</span>
+                                <img  class="player_img" src="https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/{{ pick.id }}.png&cb=1">
+                            </td>
+                        {% endif %}
+                    {% endfor %}
+                    </tr>
+                {% endfor %}
+            {% endfor %}
+        </table>
+    
     </div>
+    
+
+
+
+    <script>
+        function toggleLegend(chart_container_ob) {
+            var legend = chart_container_ob.querySelectorAll(".legend")[0];
+            legend.style.display = (legend.style.display === 'none') ? 'block' : 'none';
+        }
+
+        function toggleTooltip(cell) {
+            console.log(cell)
+            cell.classList.toggle('show');
+          }
+    </script>
+
+
     <footer>
         <p class="text-center text-"><small>&copy; 2024 Nicholas Mulligan. All rights reserved.</small></p>
     </footer>

@@ -1,7 +1,5 @@
 from django.shortcuts import render
-from espn_api.football import League
-import requests
-import analysis.analysisfuncs as analysisfuncs
+from analysis.league.league import League
 
 
 def index(request):
@@ -11,38 +9,52 @@ def index(request):
 
 
 def analysis(request):
+    # needed info
     plat = request.GET.get('platform', 'espn')
     league_id = request.GET.get('id', '')
+    s2, swid = None, None
+
+    # only needed for espn
     if plat == 'espn':
         s2 = request.GET.get('s2', '')
         swid = request.GET.get('swid', '')
 
-    if plat == 'espn':
-        try: 
-            league = League(league_id=league_id, year=2023, espn_s2=s2, swid=swid)
-        except Exception as e:
-            return render(request, 'index.html', context={'error_code': 1})
-        team_dic, num_weeks = analysisfuncs.construct_team_dic(league)
-    else:
-        # try to get response, error if none
-        r = requests.get(url="https://api.sleeper.app/v1/league/" + str(league_id) + "/rosters")
-        if r.status_code != 200:
-            return render(request, 'index.html', context={'error_code': 1})
-        team_dic, num_weeks = analysisfuncs.construct_team_dic_sleeper(league_id)
+    analysis_league = League(plat, league_id, s2=s2, swid=swid)
+    
 
-    ew_graph = analysisfuncs.get_expected_wins_graph(team_dic, num_weeks)
-    ew_diff_graph = analysisfuncs.get_ew_difference_graph(team_dic)
-    luck_graph = analysisfuncs.get_luck_graph(team_dic, num_weeks)
-    bi_graph = analysisfuncs.get_bonage_graph(team_dic, num_weeks)
-    consistency_graph = analysisfuncs.get_consistency_graph(team_dic)
-        
+    # team_dic, num_weeks = analysisfuncs.construct_team_dic(team_dic, num_weeks)
+
+    # ew_graph = analysisfuncs.get_expected_wins_graph(team_dic, num_weeks)
+    # ew_diff_graph = analysisfuncs.get_ew_difference_graph(team_dic)
+    # luck_graph = analysisfuncs.get_luck_graph(team_dic, num_weeks)
+    # bi_graph = analysisfuncs.get_bonage_graph(team_dic, num_weeks)
+    # consistency_graph = analysisfuncs.get_consistency_graph(team_dic)
+
+    ew_graph = analysis_league.get_expected_wins_graph()
+    ew_diff_graph = analysis_league.get_ew_difference_graph()
+    luck_graph = analysis_league.get_luck_graph()
+    bi_graph = analysis_league.get_bonage_graph()
+    consistency_graph = analysis_league.get_consistency_graph()
+    sleepers_dict = analysis_league.get_sleepers()
+    league_pos_rank = analysis_league.get_pos_rank_through_draft_graph()
+    first_half_pos_rank = analysis_league.get_average_pos_rank_graph(half=1)
+    second_half_pos_rank = analysis_league.get_average_pos_rank_graph(half=2)
+    draft_round_dict = analysis_league.get_draft_injury_table()
+
+
     context = {
             'random': 0,
             'exp_wins_g': ew_graph,
             'ew_diff_g': ew_diff_graph,
             'luck_g': luck_graph,
             'bi_g': bi_graph,
-            'consistency_g': consistency_graph
+            'consistency_g': consistency_graph,
+            'sleepers_dict': sleepers_dict,
+            'league_pos_rank': league_pos_rank,
+            'first_half_pos_rank': first_half_pos_rank,
+            'second_half_pos_rank': second_half_pos_rank,
+            'draft_round_dict': draft_round_dict,
+            'teams_list': [t.get_name() for t in analysis_league.teams.values()]
     }
 
     return render(request, 'analysis.html', context=context)

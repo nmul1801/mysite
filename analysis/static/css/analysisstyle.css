@@ -1,3 +1,76 @@
 p {
-    text-indent: 30px;
+  text-indent: 30px;
+}
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+th, td {
+  text-align: center;
+}
+
+#sleepers table, #sleepers th, #sleepers td {
+  padding: 10px;
+}
+
+#sleepers th {
+  background-color: #f2f2f2;
+  border-bottom: 2px solid #ddd;
+}
+
+#sleepers tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+#sleepers tr:hover {
+  background-color: #ddd;
+}
+
+#draft_injuries {
+  table-layout: fixed;
+}
+
+#draft_injuries td {
+  position: relative;
+}
+
+#draft_injuries th {
+  transform: rotate(270deg);
+  border-bottom: 2px solid #ddd;
+  max-width: 30px; /* Set a fixed width for the table cells */
+  height: 50px;
+  /* overflow: hidden; */
+  white-space: nowrap; /* Prevent text from wrapping */
+  /* text-overflow: ellipsis; Show ellipsis (...) if text overflows */
+}
+
+#draft_injuries img {
+  width: 100%;
+}
+
+.highlight {
+  background-color: #e6e6e6;
+}
+
+.tooltiptext {
+  visibility: hidden;
+  width: 120px;
+  background-color: #555;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  margin-left: -60px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+td.show .tooltiptext {
+  visibility: visible;
+  opacity: 1;
 }
