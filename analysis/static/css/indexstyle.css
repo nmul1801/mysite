@@ -6,7 +6,6 @@ body {
 
 h1 {
     font-family: Inter, sans-serif;
-    
 }
 
 .title {
@@ -21,6 +20,7 @@ btn {
     background-color: #6A0DAD;
     border-radius: 10px;
     color: white;
+    margin: auto;
 }
 
 img {
@@ -30,3 +30,48 @@ img {
 input {
     border-radius: 5px;
 }
+
+.flash {
+    animation: flash 1.5s;
+}
+
+.txt_input {
+    width: 95%;
+}
+
+a {
+    font-family: Ultra;
+    text-decoration: none;
+    color: #6A0DAD;
+}
+
+svg {
+    cursor: pointer;
+}
+
+img {
+    margin: 20px auto;
+    width: 50% ;
+}
+
+@media screen and (max-width: 550px) {
+    nav {
+        flex-direction: column;
+    }
+    
+    img {
+        margin: auto;
+        width: 100% !important;
+    }
+
+    #leagueform {
+        margin-top: 20px;
+    }
+}
+
+@keyframes flash {
+    0% { color: inherit; }
+    50% { color: #FFD700; }
+    100% { color: inherit; }
+}
+

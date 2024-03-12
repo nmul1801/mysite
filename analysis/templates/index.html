@@ -2,16 +2,20 @@
 {% load static %}
 {% block content %}
   <link rel="stylesheet" href="{% static 'css/indexstyle.css' %}"> 
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Ultra" />
   <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
- 
+
   <div class="col-md-6 offset-md-3">
-    <h1 class="mt-4 text-center">Fantasy Football Analysis</h1>
-    <p class="ms-4 text-center">Highly recommended to do this on a Desktop computer. Finding, copying and pasting information from mobile is difficult. Fill out the form below to get info luck in your league.</p>
+    <nav class="d-flex justify-content-between">
+      <img src="{% static 'img/fflogo.png' %}">
+      <a class="lead m-auto" href="#"> About</a>
+      <a class="lead m-auto" href="#">Contact</a>
+    </nav>
     <input type="hidden" id="error_code" value={{ error_code }}>
     
-    <form name="leagueform" id="leagueform" class="m-auto p-3" action="/analysis/analysis/" method="get">
+    <form name="leagueform" id="leagueform" class="p-3" action="/analysis/analysis/" method="get">
       
-      <table class="w-50 m-auto" cellspacing="5" cellpadding="5">
+      <table class="w-50 m-auto lead" cellspacing="5" cellpadding="5">
         <tr id="err_text_col">
           <td colspan="2">
             <h3 class="text-danger text-center">Invalid Input</h3>
@@ -22,49 +26,74 @@
           <td class="text-center">
             <label for="plat">Platform: </label>
           </td>
-          <td>
-            <label for="espn">ESPN</label>
-            <input onchange="updateForm()" id="espn" type="radio" name="platform" value="espn" checked>
-            <label class="ms-2" for="espn">Sleeper</label>
-            <input onchange="updateForm()" id="sleeper" type="radio" name="platform" value="sleeper">
+          <td class="text-nowrap d-flex justify-content-between" colspan="2">
+            <div>
+              <label for="espn">ESPN</label>
+              <input onchange="updateForm()" id="espn" type="radio" name="platform" value="espn" checked>
+            </div>
+            <div>
+              <label class="ms-2" for="sleeper">Sleeper</label>
+              <input onchange="updateForm()" id="sleeper" type="radio" name="platform" value="sleeper">
+            </div>
           </td> 
         </tr>
           <td class="text-end">
-            <label for="id">League ID: </label>
+            <label for="id">ID: </label>
           </td>
           <td>
-            <input id="id" type="text" name="id">
+            <input class="txt_input" id="id" type="text" name="id">
+          </td>
+          <td>
+            <svg onclick="jump_to_section('league_id_instructions')" xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="currentColor" class="bi bi-question-square" viewBox="0 0 16 16">
+              <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2z"/>
+              <path d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286m1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94"/>
+            </svg>
           </td>
           <tr class="espn-info">
             <td class="text-end"><label for="swid">SWID: </label></td>
-            <td><input id="swid" type="text" name="swid" colspan="3"></td>
+            <td><input class="txt_input" id="swid" type="text" name="swid" colspan="3"></td>
+            <td>
+              <svg onclick="jump_to_section('swid_s2_instructions')" xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="currentColor" class="bi bi-question-square" viewBox="0 0 16 16">
+                <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2z"/>
+                <path d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286m1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94"/>
+              </svg>
+            </td>
           </tr>
           <tr class="espn-info">
             <td class="text-end"><label for="s2">S2: </label></td>
-            <td colspan="50"><input cols="40" rows="2" id="s2" type="text" name="s2"></td>
+            <td><input class="txt_input" id="s2" type="text" name="s2" colspan="3"></td>
+            <td>
+              <svg onclick="jump_to_section('swid_s2_instructions')" xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="currentColor" class="bi bi-question-square" viewBox="0 0 16 16">
+                <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2z"/>
+                <path d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286m1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94"/>
+              </svg>
+            </td>
           </tr>
         <tr>
-          <td colspan="2"><input class="w-100 btn btn-primary" type="submit" value="See Analysis"></td>
+          <td colspan="3"><input class="lead w-100 btn btn-primary" type="submit" value="See Analysis"></td>
         </tr>
+      </table>
+      <hr>
+      <table class="w-50 m-auto" cellspacing="5" cellpadding="5">
         <tr>
-          <td colspan="2"><input class="w-100 btn btn-primary" onclick="submitExample()" value="View Example"></td>
+          <td colspan="3"><input class="lead w-100 btn btn-secondary" onclick="submitExample()" value="View Example"></td>
         </tr>
       </table>
     </form>
     <br>
+    <p class="ms-4 text-center">Highly recommended to do this on a Desktop computer. Finding, copying and pasting information from mobile is difficult.</p>
     <h1>Instructions</h1>
     <hr>
+    <h2 class="mt-4 fw-bold" id="league_id_instructions">League ID</h2>
     <div id="sleeper-instructions">
-      <h2 class="mt-4">League ID</h2>
       <p>To get your League ID, log into your Sleeper account, select your preferred league, then copy the id from the URL after 'league'</p>
       <img class="w-100" src="{% static 'img/leagueidsleeper.png' %}">
     </div>
     <div id="espn-instructions">
-      <h2 class="mt-4">League ID</h2>
       <p>To get your League ID, log into your ESPN account in Chrome (doesn't necessarily need to be Chrome, but the images below will look different in other browsers). Once logged in, copy the number after "leagueId" in the URL</p>
       <img class="w-100" src="{% static 'img/leagueid.png' %}">
 
-      <h2 class="mt-4">SWID and S2</h2>
+      <h2 class="mt-4 fw-bold" id="swid_s2_instructions">SWID and S2</h2>
       <p>SWID and S2 are both in your browsers cookies. So while still logged in to your ESPN account, right click anywhere on the page, then click "Inspect"</p>
       <div class="d-flex justify-content-center">
         <img class="w-25" src="{% static 'img/inspect.png' %}">
@@ -93,6 +122,18 @@
         form.id.value = "988223204793614336";
         form.submit();
       }
+
+      function jump_to_section(section_id) {
+        console.log('here')
+        var section = document.getElementById(section_id);
+        console.log(section);
+        section.scrollIntoView({ behavior: "smooth", block: "start"});
+        section.classList.remove('flash')
+        void section.offsetWidth;
+        section.classList.add('flash')
+      }
+
+
       function updateForm() {
         var espn_button = document.getElementById('espn');
         var espn_info_items = document.querySelectorAll('.espn-info');
