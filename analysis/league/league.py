@@ -343,6 +343,7 @@ class League:
                 else:
                     p.position_pick = 1
                     position_picks_dic[p.position] = [p]
+                p.set_position_pick()
                 p.sleeper_score = p.position_pick - p.pos_rank
         sleeper_dict = {pos : max(position_picks_dic[pos], key=lambda x: x.sleeper_score) for pos in position_picks_dic}
         return sleeper_dict

@@ -49,7 +49,7 @@ def analysis(request):
             'luck_g': luck_graph,
             'bi_g': bi_graph,
             'consistency_g': consistency_graph,
-            'sleepers_dict': sleepers_dict,
+            'sleepers_dict_items': list(sleepers_dict.items()),
             'league_pos_rank': league_pos_rank,
             'first_half_pos_rank': first_half_pos_rank,
             'second_half_pos_rank': second_half_pos_rank,

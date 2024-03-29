@@ -3,8 +3,22 @@
 {% block content %}
     <link rel="stylesheet" href="{% static 'css/analysisstyle.css' %}"> 
     <div class="mt-4 col-md-8 offset-md-2">
-        <h1 class="text-center">Analysis</h1>
-        <p class="mt-3">Note that leagues are treated as having one match per week. So for leagues with a league average match, this result is filtered out of their wins.</p>
+        <h1 class="text-center">Score Analysis</h1>
+        <div id="notes">
+            <p class="mt-3">Note that leagues are treated as having one match per week. So for leagues with a league average match, this result is filtered out of their wins.</p>
+        </div>
+        <h3>Bonage Index</h3>
+        <p class="mt-3">
+            Bonage index aims to capture how much a team gets boned each week. A team's BI is calculated by the 
+            following: size of league - weekly rank of opponent + 1. For example, if a team in a 10 man league matches 
+            up against the team that ends up scoring the second most points that week, their BI would be 10 - 2 + 1,
+            giving them a BI of 9 that week.
+        </p>
+        <div id="bi_container">
+            <button onclick="toggleLegend(bi_container)">Toggle Legend</button>
+            {{ bi_g|safe }}
+        </div>
+        <h3>Expected Wins</h3>
         <p class="mt-3">
             A team's weekly expected wins is the percentage of teams that they would have beaten 
             that week. It is calculated by taking a team's rank in the league - 1 and dividing that 
@@ -16,7 +30,7 @@
             <button onclick="toggleLegend(expected_win_container)">Toggle Legend</button>
             {{ exp_wins_g|safe }}
         </div>
-    
+        <h3>Difference in Expected Wins and Actual Wins</h3>
         <p class="mt-3">
             Combining expected wins with actual wins can give us a better idea of how 
             lucky/unlucky a team is. For example, if a team could have only beaten one other team 
@@ -41,16 +55,6 @@
             {{ luck_g|safe }}
         </div>
         <p class="mt-3">
-            Bonage index aims to capture how much a team gets boned each week. A team's BI is calculated by the 
-            following: size of league - weekly rank of opponent + 1. For example, if a team in a 10 man league matches 
-            up against the team that ends up scoring the second most points that week, their BI would be 10 - 2 + 1,
-            giving them a BI of 9 that week.
-        </p>
-        <div id="bi_container">
-            <button onclick="toggleLegend(bi_container)">Toggle Legend</button>
-            {{ bi_g|safe }}
-        </div>
-        <p class="mt-3">
             Standard deviation over a team's scores all season measures their consistency. More consistent teams are toward the
             bottom, while less cosistent teams are toward the top.
         </p>
@@ -58,9 +62,40 @@
             <button onclick="toggleLegend(consistency_container)">Toggle Legend</button>
             {{ consistency_g|safe }}
         </div>
+        <h1 class="mt-4 text-center">Draft Analysis</h1>
+        <p class="mt-3">A players' sleeper score (SS) is calculated using two other metrics</p>
+        <p>
+            <strong>Positional Rank (PR)</strong> is a players' relative standing based on fantasy 
+            points, only including players that are in their position. For example, both the 
+            highest-scoring RB and the highest-scoring WR will have a PR of 1. And the 5th highest-scoring 
+            running back will have a PR of 5, no matter how many QBs, Kickers, Defenses, etc. have scored 
+            higher.
+        </p>
+        <p>
+            <strong>Positional Pick (PP)</strong> measures the number of players within the same position 
+            that were drafted before a particular player of that position. For example, if Tyreek Hill 
+            was the second wide reciever selected in the draft, he would have a PP of 2. And if Kenneth 
+            Walker was the tenth running back selected in the draft, he would have a PP of 10.
+        </p>
+        <p>
+            <strong>Sleeper Score (SS)</strong> is calculated by taking a player's PP and subtracting their 
+            PR. This measures their difference in their perceived value (PP) and their actual value (PR).
+            Players with a high sleeper score were thought to be poor-performing and turned out to perform 
+            well.
+        </p>
+
+        <p>For example, 
+            {{sleepers_dict_items.0.1.name}} 
+            was the <strong>{{sleepers_dict_items.0.1.position_pick_written}}  {{sleepers_dict_items.0.0}}</strong> drafted.
+            He ended up scoring the <strong>{{sleepers_dict_items.0.1.pos_rank_written}}</strong> most among his position, giving
+            him a sleeper score of <strong>{{sleepers_dict_items.0.1.sleeper_score}}</strong>.
+        </p>
+
+        <p>Note that this is not a good metric for dynasty leagues</p>
+
         <table id="sleepers">
             <tr><th>Position</th><th colspan="2">Name</th><th>PP</th><th>PR</th><th>SS</th>
-            {% for pos, player in sleepers_dict.items%}
+            {% for pos, player in sleepers_dict_items%}
                 <small>
                     <tr>
                         <td>{{pos}}</td>
@@ -73,7 +108,18 @@
                 </small>
             {% endfor %}
         </table>
+        <h3 class="mt-3">How Well Did Your League Draft?</h3>
+        <p>
+            For each round of drafting, take the average positional rank of all players drafted in that round.
+            If your league drafted accurately, this line should have a positive slope.
+        </p>
         {{ league_pos_rank|safe }}
+        <h3 class="mt-3">Who drafted the best in the first half of the draft?</h3>
+        <p>
+            Only considering the players picked in the first half of the draft, calculate the average 
+            positional rank for each team's draft picks.
+        </p>
+
         {{first_half_pos_rank|safe}}
         {{second_half_pos_rank|safe}}
         <table id="draft_injuries">
@@ -106,9 +152,6 @@
         </table>
     
     </div>
-    
-
-
 
     <script>
         function toggleLegend(chart_container_ob) {

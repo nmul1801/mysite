@@ -81,15 +81,31 @@
       </table>
     </form>
     <br>
-    <p class="ms-4 text-center">Highly recommended to do this on a Desktop computer. Finding, copying and pasting information from mobile is difficult.</p>
     <h1>Instructions</h1>
     <hr>
-    <h2 class="mt-4 fw-bold" id="league_id_instructions">League ID</h2>
     <div id="sleeper-instructions">
+      <h2 class="mt-4 fw-bold" id="league_id_instructions">League ID</h2>
+      <h3 class="mt-3">Desktop</h3>
       <p>To get your League ID, log into your Sleeper account, select your preferred league, then copy the id from the URL after 'league'</p>
       <img class="w-100" src="{% static 'img/leagueidsleeper.png' %}">
+      <h3 class="mt-3">Mobile</h3>
+      <p>On mobile, go to your league in the Sleeper app and navigate to your league. Press the settings icon in the top right corner.</p>
+      <div class="d-flex justify-content-center">
+        <img class="m-3 w-75" src="{% static 'img/sleepermobilesettings.png' %}">
+      </div>
+      
+      <p>Navigate to the general settings.</p>
+      <div class="d-flex justify-content-center">
+        <img class="m-3 w-75" src="{% static 'img/generalsettings.png' %}">
+      </div>
+      <p>Scroll to the bottom and copy your league ID</p>
+      <div class="d-flex justify-content-center">
+        <img class="m-3 w-75" src="{% static 'img/copyleagueid.png' %}">
+      </div>
     </div>
     <div id="espn-instructions">
+      <p>I highly recommended using a Desktop computer to find this info. Finding, copying and pasting information from mobile is difficult.</p>
+      <h2 class="mt-4 fw-bold" id="league_id_instructions">League ID</h2>
       <p>To get your League ID, log into your ESPN account in Chrome (doesn't necessarily need to be Chrome, but the images below will look different in other browsers). Once logged in, copy the number after "leagueId" in the URL</p>
       <img class="w-100" src="{% static 'img/leagueid.png' %}">
 
