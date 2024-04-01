@@ -1,6 +1,29 @@
+:root {
+  --primary-color: #574D68; /* Define primary color variable */
+  --secondary_color: #DDC9B4;
+}
+
+body {
+  /* background-color: white; */
+  color: black;
+}
+
+.toggle-legend-btn {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: #fff;
+}
+
+.toggle-legend-btn:hover, .toggle-legend-btn:focus{
+  background-color: var(--secondary_color);
+  border-color: var(--secondary_color);
+  color: black;
+}
+
 p {
   text-indent: 30px;
 }
+
 table {
     border-collapse: collapse;
     width: 100%;
@@ -15,7 +38,6 @@ th, td {
 }
 
 #sleepers th {
-  background-color: #f2f2f2;
   border-bottom: 2px solid #ddd;
 }
 
@@ -26,6 +48,7 @@ th, td {
 #sleepers tr:hover {
   background-color: #ddd;
 }
+
 
 #draft_injuries {
   table-layout: fixed;
@@ -40,9 +63,11 @@ th, td {
   border-bottom: 2px solid #ddd;
   max-width: 30px; /* Set a fixed width for the table cells */
   height: 50px;
-  /* overflow: hidden; */
   white-space: nowrap; /* Prevent text from wrapping */
-  /* text-overflow: ellipsis; Show ellipsis (...) if text overflows */
+}
+
+#pre-injury-p {
+  margin-bottom: 100px;
 }
 
 #draft_injuries img {
@@ -74,3 +99,4 @@ td.show .tooltiptext {
   visibility: visible;
   opacity: 1;
 }
+

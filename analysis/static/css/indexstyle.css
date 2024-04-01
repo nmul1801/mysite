@@ -1,6 +1,4 @@
 body {
-    background-color: #000000;
-    color: #FFFFFF;
     font-family: Inter, sans-serif;
 }
 
@@ -10,10 +8,6 @@ h1 {
 
 .title {
     color: #6A0DAD;
-}
-
-btn {
-    background-color: #C0C0C0;
 }
 
 #leagueform {

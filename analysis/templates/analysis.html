@@ -7,7 +7,7 @@
         <div id="notes">
             <p class="mt-3">Note that leagues are treated as having one match per week. So for leagues with a league average match, this result is filtered out of their wins.</p>
         </div>
-        <h3>Bonage Index</h3>
+        <h3 class="mt-3">Bonage Index</h3>
         <p class="mt-3">
             Bonage index aims to capture how much a team gets boned each week. A team's BI is calculated by the 
             following: size of league - weekly rank of opponent + 1. For example, if a team in a 10 man league matches 
@@ -15,55 +15,162 @@
             giving them a BI of 9 that week.
         </p>
         <div id="bi_container">
-            <button onclick="toggleLegend(bi_container)">Toggle Legend</button>
+            <div class="row justify-content-end">
+                <div class="col-auto">
+                    <button class="btn m-2 btn-primary toggle-legend-btn" onclick="toggleLegend(bi_container)">Toggle Legend</button>
+                </div>
+            </div>
             {{ bi_g|safe }}
         </div>
-        <h3>Expected Wins</h3>
+        <h3 class="mt-2">Expected Wins</h3>
         <p class="mt-3">
-            A team's weekly expected wins is the percentage of teams that they would have beaten 
-            that week. It is calculated by taking a team's rank in the league - 1 and dividing that 
-            by the size of the league - 1. For example, if a leauge has 11 members, and a team ranks
-            6th on a given week, then their E(W) is 0.5. If a team ranks firs, E(W) = 1, and if they
-            rank last, E(W) = 0.
+            A team’s expected wins each week is defined as the percentage of teams in their league they would 
+            have defeated. The purpose of this statistic is to capture how well a team performs each week 
+            relative to the league. Counting wins and losses only indicates how well a team performs relative 
+            to its opponent, which for all intents and purposes, is random. Expected wins aims to look past 
+            this randomness. 
+        </p>
+        <p>
+            For example, say a team is in a league with 11 total teams, including itself. The first week, the 
+            team places 6th in terms of total points scored. Then there are 5 teams that it could have beaten, 
+            and 5 teams it would have lost to, giving them an expected win that week of 0.5. The next week, 
+            the team scores the second most points in the league. Then there is only one other team they would 
+            have lost to, and 9 teams they would have defeated, giving them an expected win of 9 / 10 = 0.9. 
+            Through two weeks, this team’s expected win total is 1.4 games. Calculating a team’s expected 
+            wins each week, then adding these numbers up gives us an idea of how many games a team is expected 
+            to win.
         </p>
         <div id="expected_win_container">
-            <button onclick="toggleLegend(expected_win_container)">Toggle Legend</button>
+            <div class="row justify-content-end">
+                <div class="col-auto">
+                    <button class="m-2 btn btn-primary toggle-legend-btn" onclick="toggleLegend(expected_win_container)">Toggle Legend</button>    
+                </div>
+            </div>
             {{ exp_wins_g|safe }}
         </div>
-        <h3>Difference in Expected Wins and Actual Wins</h3>
+        <h3 class="mt-2">Difference in Expected Wins and Actual Wins</h3>
         <p class="mt-3">
-            Combining expected wins with actual wins can give us a better idea of how 
-            lucky/unlucky a team is. For example, if a team could have only beaten one other team 
-            (low E(W)) and they win that week (W = 1), then [W - E(W)]  would be close to 1. 
-            Or, if a team could have beaten most teams in the league, but they lose, E(W) is a
-            decimal close to 1, W = 0, so [W - E(W)] is close to -1. Add [W - E(W)] for every 
-            week, and you get an idea of how lucky a team has been overall, where a negative number
-            indicates a team has been unlucky, and a positive number indicates a team has been lucky.
+            One way to think about luck is to calculate at the number of games a team was expected to win, 
+            then see how many games they actually won. This difference tells us how lucky a team is. 
+        </p>
+        <p> 
+            On a smaller scale, take this example: Team A and Team B are in a league with 11 rosters. 
+            One week, Team A scores second lowest in the league, generating an expected win of 0.1. 
+            That week, Team A won. That’s really lucky! There’s only one other team that they could 
+            have played in order to win that week, and it happened. Now take the equally unlucky example. 
+            Team B generates an expected win on 0.9, and loses. This means that there’s only one other 
+            team that they could have lost to, and they lost. Equally unlucky. One way we can illustrate 
+            this is by taking a team’s actual result from that week: 1 if the team won, and 0 if the team lost, 
+            and subtracting it by their expected wins that week. Going back to our examples, Team A had an 
+            expected win of 0.1, and won (1), then 1 - 0.1 = 0.9. Team B had an expected win of 0.9, and lost 
+            (0): 0 - 0.9 = -0.9. A negative number indicates that their expected win was greater than the 
+            result, meaning they were unlucky — they were expected to win more than they did. And a positive 
+            number indicates that their expected win was less than their result — they won more than they were
+            expected to. We can extend this to the entire season by taking a team’s total number of wins, 
+            and subtracting their total expected wins. This gives us an idea of how many wins each
+            team is 'ahead' of their expected wins. The same idea applies, where the more positive this number is,
+            the more lucky the associated team has been, and the more negative this number is, the more unlucky 
+            that team has been.
+        </p>
+        
+        <p>
+            The luckiest roster was team <strong>{{ew_dic.lucky_name}}</strong>. 
+            While they were expected to win <strong>{{ew_dic.l_total_ex_wins}}</strong>
+            games, they ended up winning <strong>{{ew_dic.l_total_wins}}</strong>,
+            meaning they were <strong>{{ew_dic.l_ew_diff}}</strong>
+            ahead of their expected wins.
+        </p>
+        <p>
+            The unluckiest roster was team <strong>{{ew_dic.unlucky_name}}</strong>. 
+            While they were expected to win <strong>{{ew_dic.u_total_ex_wins}}</strong>
+            games, they ended up winning <strong>{{ew_dic.u_total_wins}}</strong>,
+            meaning they were <strong>{{ew_dic.u_ew_diff}}</strong>
+            behind of their expected wins.
         </p>
 
+        <p>
+
         {{ ew_diff_g|safe }}
+        <h3 class="mt-3">Luck by Roster</h3>
         <p class="mt-3">
-            Taking the total of [W - E(W)] for all weeks, we can find the likelihood of this difference
-            occurring by standardizing to binomial distribution. Each game is either won or lost based 
-            on a team's E(W) for that given week. So after n trials (number of weeks), what are the 
-            odds that you are at least [W - E(W)] from the mean. In this case, the mean is 0, as without any luck,
-            E(W) = W, so W - E(W) = 0. The teams that had a [W - E(W)] above zero (more lucky) are farther left, and 
-            the teams with a [W - E(W)] below zero (more unlucky) are to the right.
+            According to the last chart, we determined that {{ew_dic.lucky_name}} was the luckiest roster, 
+            while {{ew_dic.unlucky_name}} was the unluckiest. But how much luckier was {{ew_dic.lucky_name}} 
+            than {{ew_dic.unlucky_name}}? The last chart contextualized how many games were attributed to 
+            luck, but what is the likelihood of this (un)luckiness occurring? One way to calculate this is by 
+            employing a binomial distribution. A binomial distribution represents the success of some binary 
+            event over the course of several trials. For instance, consider a kicker named Blair Walsh with a 
+            extra point success percentage of 50%. Now, what is the probability that, after 10 shots, the 
+            player has made at least 7 extra point kicks? This example is binary — either the player makes 
+            the field goal or misses, and it occurs over the course of 10 trials. If you’re interested in 
+            delving into the mathematics behind a binomial distribution, you can check out resources like 
+            <a href="https://www.youtube.com/watch?v=8idr1WZ1A7Q">3Blue1Brown's video</a>, or 
+            <a href="https://www.youtube.com/watch?v=6YzrVUVO9M0"> this video from Primer.</a>
+        </p>
+        <p>
+            In our scenario, the binary event we're dealing with is wins and losses (each week, a team either 
+            wins or loses). In the absence of any knowledge or factors influencing the outcome, it's reasonable 
+            to assume that each team has an equal chance of winning or losing, so our ‘success’ variable will be 
+            0.5. The number of trials is more straightforward, as this will be the number of weeks {{num_weeks}}.
+        </p>
+        <p>
+            By standardizing the luck metric, we can compare the observed deviation from expected wins to what 
+            would be expected under a random scenario. With these variables, we can create a probability density 
+            curve. A probability density curve is used to calculate the probability of an event occurring by 
+            finding the area under the curve. Because we standardized the curve based on the described parameters, 
+            we can calculate the area under the curve for each team’s difference in expected wins and actual wins. 
+            Determining the area under the curve to the left of each team’s expected vs. actual wins difference 
+            would tell us the likelihood of getting a difference that is less than the observed difference, and 
+            calculating the area under the curve to the right of each team’s luck metric would give us the likelihood 
+            of getting a difference that is more than the observed difference. For simplicity, we will focus on 
+            finding the area under the curve to the left of each team’s luck metric. This provides us with a probability 
+            for each team that represents the likelihood that they would have performed worse than they did if all 
+            matchups were random. In other words, this calculation answers the question: How likely was it for each 
+            team to lose more games than they did? Any probability below 50% indicates that a team was more likely 
+            than not to win more games than they did, suggesting a degree of unluckiness, while any probability above 
+            50% indicates the opposite: a team was more likely than not to lose more games than they did.
+        </p>
+
+        {{prob_auc_g|safe}}
+        
+        <p>
+            <strong>{{ew_dic.unlucky_name}}</strong> 
+            had a difference of <strong>{{ew_dic.u_ew_diff}}</strong>. 
+            After <strong>{{num_weeks}}</strong>
+            games, there is a <strong>{{luck_dic.u_prob}}%</strong> 
+            probability that they would lose more games than they did, meaning there is a <strong>{{luck_dic.perc_lucky}}%</strong>
+            probability that they would win more games than they did. Unlucky!
+        </p>
+            <strong>{{ew_dic.lucky_name}}</strong>
+            had a difference of <strong>{{ew_dic.l_ew_diff}}</strong>
+            . There is a <strong>{{luck_dic.l_prob}}%</strong>
+            probability that they would lose more games than they did. Lucky!
         </p>
         <div id="luck_container">
-            <button onclick="toggleLegend(luck_container)">Toggle Legend</button>
             {{ luck_g|safe }}
         </div>
+        <h3 class="mt-3">Consistency vs. Average Score</h3>
         <p class="mt-3">
-            Standard deviation over a team's scores all season measures their consistency. More consistent teams are toward the
-            bottom, while less cosistent teams are toward the top.
+            A team's consistenct score is calculated using the following formula: 100 - (s / a * 100), where s is the 
+            standard deviation of a team's weekly points scored throughout the season, and a is the average amount of
+            points scored per week. Standard deviation is a measure of how spread out a set of data is from the average.
+            A high standard deviation indicates that a data set is more varied or spread out.
+        </p>
+        <p>
+            Take a team that has scored an average of 100 points per week. If they had consistently scored exactly 
+            100 points every week, their standard devation would be zero, resulting in a their weekly scores were
+            more varied, say their weekly scores were 90, 110, 120, 80, 100, then the standard deviation would be 
+            higher, in this case 14.14. Then their consistency score would be 100 - (14.14 / 100 * 100) = 85.86.
         </p>
         <div id="consistency_container">
-            <button onclick="toggleLegend(consistency_container)">Toggle Legend</button>
+            <div class="row justify-content-end">
+                <div class="col-auto">
+                    <button class="m-2 btn btn-primary toggle-legend-btn" onclick="toggleLegend(consistency_container)">Toggle Legend</button>
+                </div>
+            </div>
             {{ consistency_g|safe }}
         </div>
         <h1 class="mt-4 text-center">Draft Analysis</h1>
-        <p class="mt-3">A players' sleeper score (SS) is calculated using two other metrics</p>
+        <p class="mt-3">A players' sleeper score (SS) is calculated using two other metrics:</p>
         <p>
             <strong>Positional Rank (PR)</strong> is a players' relative standing based on fantasy 
             points, only including players that are in their position. For example, both the 
@@ -116,26 +223,43 @@
         {{ league_pos_rank|safe }}
         <h3 class="mt-3">Who drafted the best in the first half of the draft?</h3>
         <p>
-            Only considering the players picked in the first half of the draft, calculate the average 
+            Only considering the players picked in the <strong>first</strong> half of the draft, calculate the average 
             positional rank for each team's draft picks.
         </p>
 
         {{first_half_pos_rank|safe}}
+
+        <h3 class="mt-3">Who drafted the best in the second half of the draft?</h3>
+        <p>
+            Only considering the players picked in the <strong>second</strong> half of the draft, calculate the average 
+            positional rank for each team's draft picks.
+        </p>
+    
         {{second_half_pos_rank|safe}}
-        <table id="draft_injuries">
+
+        <h3>Injury Bonage</h3>
+        <p id="pre-injury-p">
+            The table below measures how injured each roster's draft class was throughout the season. Each 
+            column represents a roster slot, and each row represents a draft round. Each cell has the picture
+            of the player associated with that particular draft pick, as well as a background color representing
+            a players inactivity. A player with a green background was mostly active, while a player with a red
+            background missed a significant amount of the season. Clicking on a player's cell will display their 
+            name, and the percentage of the season they were inactive.
+        </p>
+        <table class="mt-4" id="draft_injuries">
             <tr>
                 <th></th>
                 {% for name in teams_list%}
-                    <th>{{name}}</th>
+                    <th class="small">{{name}}</th>
                 {% endfor %}    
             </tr>
             {% for r_num, d_picks in draft_round_dict.items%}
                 {% with length=d_picks|length %}
-                <tr {% if r_num|divisibleby:2 %} style="background-color: #f2f2f2;" {% endif %}>
+                <tr>
                 <td rowspan={{length}}>Rd {{r_num}}</td>
                 {% endwith %}
                 {% for pick_row in d_picks%}
-                    {% if not forloop.counter == 1 %} <tr {% if r_num|divisibleby:2 %} style="background-color: #f2f2f2;" {% endif %}> {% endif %}
+                    {% if not forloop.counter == 1 %} <tr> {% endif %}
                     {% for pick in pick_row %}
                         {% if pick == None%}
                             <td></td>

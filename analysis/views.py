@@ -20,19 +20,10 @@ def analysis(request):
         swid = request.GET.get('swid', '')
 
     analysis_league = League(plat, league_id, s2=s2, swid=swid)
-    
-
-    # team_dic, num_weeks = analysisfuncs.construct_team_dic(team_dic, num_weeks)
-
-    # ew_graph = analysisfuncs.get_expected_wins_graph(team_dic, num_weeks)
-    # ew_diff_graph = analysisfuncs.get_ew_difference_graph(team_dic)
-    # luck_graph = analysisfuncs.get_luck_graph(team_dic, num_weeks)
-    # bi_graph = analysisfuncs.get_bonage_graph(team_dic, num_weeks)
-    # consistency_graph = analysisfuncs.get_consistency_graph(team_dic)
 
     ew_graph = analysis_league.get_expected_wins_graph()
-    ew_diff_graph = analysis_league.get_ew_difference_graph()
-    luck_graph = analysis_league.get_luck_graph()
+    ew_team_dic, ew_diff_graph = analysis_league.get_ew_difference_graph()
+    luck_dic, luck_graph = analysis_league.get_luck_graph()
     bi_graph = analysis_league.get_bonage_graph()
     consistency_graph = analysis_league.get_consistency_graph()
     sleepers_dict = analysis_league.get_sleepers()
@@ -40,10 +31,11 @@ def analysis(request):
     first_half_pos_rank = analysis_league.get_average_pos_rank_graph(half=1)
     second_half_pos_rank = analysis_league.get_average_pos_rank_graph(half=2)
     draft_round_dict = analysis_league.get_draft_injury_table()
-
+    prob_auc_g = analysis_league.get_probdcurve()
+    
 
     context = {
-            'random': 0,
+            'num_weeks': analysis_league.num_weeks,
             'exp_wins_g': ew_graph,
             'ew_diff_g': ew_diff_graph,
             'luck_g': luck_graph,
@@ -54,7 +46,10 @@ def analysis(request):
             'first_half_pos_rank': first_half_pos_rank,
             'second_half_pos_rank': second_half_pos_rank,
             'draft_round_dict': draft_round_dict,
-            'teams_list': [t.get_name() for t in analysis_league.teams.values()]
+            'teams_list': [t.get_name() for t in analysis_league.teams.values()],
+            'ew_dic': ew_team_dic,
+            'luck_dic': luck_dic,
+            'prob_auc_g': prob_auc_g
     }
 
     return render(request, 'analysis.html', context=context)

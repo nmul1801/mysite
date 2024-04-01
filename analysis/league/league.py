@@ -11,7 +11,9 @@ import requests
 import json
 from django.conf import settings
 import os
-import uuid
+import numpy as np
+import plotly.graph_objects as go
+from scipy.integrate import simps
 
 class League:
 
@@ -43,6 +45,9 @@ class League:
             self._construct_league_sleeper(league_id)
 
         self._construct_league_general()
+
+        self.primary_color = '#574D68'
+        self.secondary_color = '#DDC9B4'
 
     # League construction based on platform
             
@@ -188,7 +193,7 @@ class League:
             data = player_data[player_id]
 
             # filter out silly picks and defensive picks
-            if data['position'] not in league_positions or data['position'] == 'DEF':
+            if data['position'] not in league_positions or data['position'] == 'DEF' or data['position'] == 'K':
                 continue
             
             # take count of their name if we have to, but try to get espn id 
@@ -326,7 +331,7 @@ class League:
         df = pd.DataFrame(all_avgs, columns=df_columns)
         df = df.sort_values(by='Average Positional Rank')
 
-        fig = px.bar(df, x="Team", y="Average Positional Rank")
+        fig = px.bar(df, x="Team", y="Average Positional Rank", color_discrete_sequence=[self.primary_color])
         fig.update_layout(
             xaxis_title=''
         )
@@ -387,75 +392,91 @@ class League:
                 
         df_columns = ["Team", "Week", "Expected Wins"]
 
+        color_map = {"Week " + str(i + 1): self.primary_color if i % 2 == 0 else self.secondary_color for i in range(self.num_weeks)}
+
         df = pd.DataFrame(all_wins_matrix, columns=df_columns)
 
-        fig = px.bar(df, x="Team", y="Expected Wins", color="Week")
+        fig = px.bar(df, x="Team", y="Expected Wins", color="Week", color_discrete_map=color_map)
         
         figHTML = self._create_fig_layout(fig, True)
         return figHTML
 
     def get_ew_difference_graph(self):
         
-        ew_diff_dict = {t.get_name() : sum(t.get_wins()) - sum(t.get_ew_list()) for t in self.teams.values()}
+        ew_diff_dict = {t.id : sum(t.get_wins()) - sum(t.get_ew_list()) for t in self.teams.values()}
         ew_diff_dict = dict(sorted(ew_diff_dict.items(), key=lambda x: x[1], reverse=True))
+
+
+        # dictionary for team display
+
+        lucky_team = self.teams[list(ew_diff_dict.items())[0][0]]
+        unlucky_team = self.teams[list(ew_diff_dict.items())[-1][0]]
+
+        self.lucky_team = lucky_team
+        self.lucky_team_ew_diff = round(sum(lucky_team.get_wins()) - sum(lucky_team.get_ew_list()), 2)
+
+        ew_team_dic = {'lucky_name' : lucky_team.get_name(), 
+                        'l_total_wins' : round(sum(lucky_team.get_wins()), 2), 
+                        'l_total_ex_wins' : round(sum(lucky_team.get_ew_list()), 2),
+                        'l_ew_diff' : round(sum(lucky_team.get_wins()) - sum(lucky_team.get_ew_list()), 2),
+                        'unlucky_name' : unlucky_team.get_name(), 
+                        'u_total_wins' : round(sum(unlucky_team.get_wins()), 2), 
+                        'u_total_ex_wins' : round(sum(unlucky_team.get_ew_list()), 2),
+                        'u_ew_diff' : round(sum(unlucky_team.get_ew_list()) - sum(unlucky_team.get_wins()), 2)
+                        }
 
         all_diff_matrix = []
         for ew_entry in ew_diff_dict.items():
-            all_diff_matrix.append([ew_entry[0], ew_entry[1]])
+            all_diff_matrix.append([self.teams[ew_entry[0]].get_name(), ew_entry[1]])
 
         df_columns = ["Team", "EW Difference"]
 
         df = pd.DataFrame(all_diff_matrix, columns=df_columns)
 
-        fig = px.bar(df, x="Team", y="EW Difference")
+        fig = px.bar(df, x="Team", y="EW Difference", color_discrete_sequence=[self.primary_color])
         figHTML = self._create_fig_layout(fig, False)
         
-        return figHTML
+        return ew_team_dic, figHTML
     
     def get_luck_graph(self):
         ew_diff_dict = {t.get_name() : sum(t.get_wins()) - sum(t.get_ew_list()) for t in self.teams.values()}
-        ew_diff_dict = dict(sorted(ew_diff_dict.items(), key=lambda x: x[1], reverse=True))
+        ew_diff_dict = dict(sorted(ew_diff_dict.items(), key=lambda x: x[1]))
 
         n = self.num_weeks
         p = 0.5
-        avg_ew = n * p
         variance = n * p * (1 - p)
         luck_P_list = list()
-        luck_list = list()
 
-
+    
         for ew in ew_diff_dict.values():
             z_score = ew / math.sqrt(variance) if variance != 0 else 0
             p = norm.cdf(z_score)
-            luck = "Below Zero"
-            if p > 0.5:
-                p = 1 - p
-                luck = "Above Zero"
             luck_P_list.append(round((p * 100), 2))
-            luck_list.append(luck)
+
+        luck_dic = {'l_prob' : luck_P_list[-1], 'u_prob': luck_P_list[0], 'perc_lucky' : round(100 - luck_P_list[0], 2)}
 
         luck_matrix = []
         for i, entry in enumerate(ew_diff_dict.items()):
-            new_luck = [entry[0], luck_P_list[i], luck_list[i]]
+            new_luck = [entry[0], luck_P_list[i]]
             luck_matrix.append(new_luck)
 
-        df_columns = ["Team", "Percent Odds of [W - E(W)] Occurring", "W - E(W)"]
+        df_columns = ["Team", "Likelihood of Performing Worse"]
 
         df = pd.DataFrame(luck_matrix, columns=df_columns)
 
         fig = px.bar(df, 
             x="Team", 
-            y="Percent Odds of [W - E(W)] Occurring", 
-            # title="Odds of Each Team's [W - E(W)] Occurring",
-            color='W - E(W)',
-            color_discrete_map={
-                'Above Zero': 'green',
-                'Below Zero': 'red'
-            })
+            y="Likelihood of Performing Worse",
+            color_discrete_sequence=[self.primary_color]
+            )
         
+        
+
+        fig.add_hline(y=50, line_dash="dash", line_color="red", annotation_text="Line of Luck", annotation_position="top left")
+
         figHTML = self._create_fig_layout(fig, True)
         
-        return figHTML
+        return luck_dic, figHTML
 
     def get_bonage_graph(self):
         all_team_list = list()
@@ -465,6 +486,7 @@ class League:
         all_team_list.sort(key=lambda team: sum(team[1]), reverse=True)
 
         all_BI_matrix = []
+    
         for i in range(self.num_weeks):
             for team in all_team_list:
                 new_BI = [team[0], "Week " + str(i + 1), team[1][i]]
@@ -474,7 +496,10 @@ class League:
 
         df = pd.DataFrame(all_BI_matrix, columns=df_columns)
 
-        fig = px.bar(df, x="Team", y="BI", color="Week")
+        color_map = {"Week " + str(i + 1): self.primary_color if i % 2 == 0 else self.secondary_color for i in range(self.num_weeks)}
+
+        fig = px.bar(df, x="Team", y="BI", color="Week", color_discrete_map=color_map)
+
         figHTML = self._create_fig_layout(fig, True)
 
         return figHTML
@@ -483,11 +508,11 @@ class League:
         df = pd.DataFrame()
 
         df["Team"] = [t.get_name() for t in self.teams.values()]
-        df["Standard Deviation"] = [statistics.stdev(t.get_score_list()) for t in self.teams.values()]
+        df["Consistency Score"] = [ 100 - ((statistics.stdev(t.get_score_list()) / (sum(t.get_score_list()) / self.num_weeks)) * 100) for t in self.teams.values()]
         df["Average Points Per Week"] = [sum(t.get_score_list()) / self.num_weeks for t in self.teams.values()]
 
         df = df.sort_values(by=['Average Points Per Week'])
-        fig = px.scatter(df, y="Standard Deviation", x="Average Points Per Week", color="Team")
+        fig = px.scatter(df, y="Consistency Score", x="Average Points Per Week", color="Team")
         fig.update_traces(textposition='bottom center')
         fig.update_traces(marker_size=10)
         figHTML = self._create_fig_layout(fig, True)
@@ -503,7 +528,7 @@ class League:
             'Average Positional Rank' : pos_rank_avg
         }
         )
-        fig = px.line(df, x="Draft Round", y="Average Positional Rank")
+        fig = px.line(df, x="Draft Round", y="Average Positional Rank", color_discrete_sequence=[self.primary_color])
         figHTML = self._create_fig_layout(fig, False)
         return figHTML
     
@@ -537,13 +562,64 @@ class League:
         # print(draft_adjusted_dic)
         return draft_adjusted_dic
 
+    def get_probdcurve(self):
+        # Function to calculate the probability density function (PDF) of the normal distribution
+        def normal_pdf(x, mean, standard_deviation):
+            return 1 / (standard_deviation * np.sqrt(2 * np.pi)) * np.exp(-0.5 * ((x - mean) / standard_deviation)**2)
+
+        num_games = self.num_weeks
+        p = 0.5
+        var = num_games * p * (1 - p)
+
+        mean = 0  # Mean of the distribution
+        standard_deviation = np.sqrt(var)  # Standard deviation of the distribution
+        x_values = np.linspace(-5, 5, 100)  # Adjust range as needed
+        y_values = normal_pdf(x_values, mean, standard_deviation)
+
+        fig = px.line(x=x_values, y=y_values, title='Normal Distribution Curve')
+        
+        x_shade = self.lucky_team_ew_diff  # Adjust as needed
+
+        # Generate the x and y values for shading
+        x_shade_values = np.linspace(-5, x_shade, 1000)
+        y_shade_values = normal_pdf(x_shade_values, mean, standard_deviation)
+
+        area_under_curve = simps(y_shade_values, x_shade_values)
+
+        fig.add_trace(
+            go.Scatter(
+                x=np.concatenate([x_shade_values, x_shade_values[::-1]]),
+                y=np.concatenate([y_shade_values, [0]*len(y_shade_values)]),
+                fill='toself',
+                fillcolor='rgba(0,100,80,0.2)',  # Adjust transparency as needed
+                line=dict(color='rgba(255,255,255,0)'),
+                name=f'Area under the curve up to x={x_shade}'
+            )
+        )
+
+        fig.add_trace(go.Scatter(x=[x_shade], y=[normal_pdf(x_shade, mean, standard_deviation)], mode='markers', name='Point'))
+        fig.add_annotation(x=x_shade, y=normal_pdf(x_shade, mean, standard_deviation), text=f'Luck metric for {self.lucky_team.get_name()}<br>Wins - Expected wins = {self.lucky_team_ew_diff}<br>Area under curve = {area_under_curve:.2f}', showarrow=True, arrowhead=1)
+        fig.update_layout(title='Normal Distribution Curve with Labeled Point', xaxis_title='x', yaxis_title='Probability Density')
+
+        # Show the plot
+        fig.update_layout(showlegend=False)
+
+        return self._create_fig_layout(fig, False)
+
+
     def _create_fig_layout(self, fig, include_legend):
 
         fig.update_layout(
             showlegend=include_legend,
             margin=dict(l=0, r=0, t=0, b=0),  # Set margins to zero to remove extra space
-            xaxis_tickangle=-60
+            xaxis_tickangle=-60,
+            # plot_bgcolor='white',  # Set background color
+            # paper_bgcolor='white',
+            font=dict(color='black'),  # Set text color
+            xaxis=dict(tickfont=dict(color='black')),  # Set x-axis tick labels color
+            yaxis=dict(tickfont=dict(color='black'))
         )
+
 
         if include_legend:
             fig.update_layout(
