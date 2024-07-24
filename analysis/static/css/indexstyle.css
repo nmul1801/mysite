@@ -25,9 +25,6 @@ input {
     border-radius: 5px;
 }
 
-.flash {
-    animation: flash 1.5s;
-}
 
 .txt_input {
     width: 95%;
@@ -55,11 +52,5 @@ img {
     #leagueform {
         margin-top: 20px;
     }
-}
-
-@keyframes flash {
-    0% { color: inherit; }
-    50% { color: #FFD700; }
-    100% { color: inherit; }
 }
 

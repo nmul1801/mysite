@@ -183,7 +183,7 @@ class League:
         with open(path,"r") as file:
             player_data = json.load(file)
         # used to get the player position ranks
-        league = ESPN_League(league_id=64612107, year=2023, espn_s2='AECM85hbXZD%2FFG9s2ALIuE4XrHUPYodyji1oDVpO17ISfafgY9b9kxJ4QZaG1FiR1nVU0UW%2FtIQoPvtOfxxlA2y9xKn4dFzG1FO%2BNdP6ZsZZNly5BCtfCznME5sc8OJhBcY7nEjYRQ6b6tAtQvXYyvV65Ya6Hk4klxd0iIBzk6S82ZZiob5i8%2BThUSpeh0sUypUA%2FdpC06ZhaEVy9B0qVL%2B3tL8T3pK44imaNmSCGrLEmtTb5xmhmKIQYPPmE99IEvNy9ltr9DfPmJucfiPMVAfBcWaZUpEAE160r4SsIszqsw%3D%3D', swid='F71F32C4-9869-4DFB-A620-ADD15AA67520')
+        league = ESPN_League(league_id=1927423163, year=2023, espn_s2='AECM85hbXZD%2FFG9s2ALIuE4XrHUPYodyji1oDVpO17ISfafgY9b9kxJ4QZaG1FiR1nVU0UW%2FtIQoPvtOfxxlA2y9xKn4dFzG1FO%2BNdP6ZsZZNly5BCtfCznME5sc8OJhBcY7nEjYRQ6b6tAtQvXYyvV65Ya6Hk4klxd0iIBzk6S82ZZiob5i8%2BThUSpeh0sUypUA%2FdpC06ZhaEVy9B0qVL%2B3tL8T3pK44imaNmSCGrLEmtTb5xmhmKIQYPPmE99IEvNy9ltr9DfPmJucfiPMVAfBcWaZUpEAE160r4SsIszqsw%3D%3D', swid='F71F32C4-9869-4DFB-A620-ADD15AA67520')
         player_id_to_team_dict, self.draft_rounds = {}, {}
         player_name_list = list()
         # get all players with an espn id
@@ -285,10 +285,12 @@ class League:
             for p_num, p in picks_dict.items():
                 num_week_injured = 0
                 for week_num in range(1, self.num_weeks):
-                    if week_num in p.stats and len(p.stats[week_num]['breakdown']) == 0:
+                    if week_num not in p.stats:
+                        num_week_injured += 1
+                    elif len(p.stats[week_num]['breakdown']) == 0:
                         num_week_injured += 1
 
-                p.percent_injured = num_week_injured / len(p.stats)
+                p.percent_injured = num_week_injured / self.num_weeks
 
     def _get_num_weeks_sleeper(self, league_id):
         r = requests.get(url="https://api.sleeper.app/v1/league/" + str(league_id))
@@ -533,13 +535,13 @@ class League:
         return figHTML
     
     def get_draft_injury_table(self):
-        color_list = ['red', '#f13600', '#e36500', '#d58e00', '#c7b000', '#a4b800', '#72aa00', '#459c00', '#208e00', 'green']
+        color_list = ['black', 'red', '#f13600', '#e36500', '#d58e00', '#c7b000', '#a4b800', '#72aa00', '#459c00', '#208e00', 'green']
 
         draft_table_dict = {i : {j : list() for j in self.teams.keys()} for i in range(1, len(self.draft_rounds) + 1)}
 
         for round_num, picks in self.draft_rounds.items():
             for pick_num, p in picks.items():
-                ind = 9 - int(p.percent_injured * 10 * 3)
+                ind = 9 - int(p.percent_injured * 10 * 2)
                 ind = 0 if ind < 0 else ind
                 c = color_list[ind]
 

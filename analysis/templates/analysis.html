@@ -100,9 +100,10 @@
             employing a binomial distribution. A binomial distribution represents the success of some binary 
             event over the course of several trials. For instance, consider a kicker named Blair Walsh with a 
             extra point success percentage of 50%. Now, what is the probability that, after 10 shots, the 
-            player has made at least 7 extra point kicks? This example is binary — either the player makes 
-            the field goal or misses, and it occurs over the course of 10 trials. If you’re interested in 
-            delving into the mathematics behind a binomial distribution, you can check out resources like 
+            player has made at least 7 extra point kicks? This example is binary — either Mr. Walsh makes 
+            the field goal or (if it's to put the Vikings ahead to win the game) misses, and it occurs over 
+            the course of 10 trials. If you’re interested in looking into the mathematics behind a 
+            binomial distribution, you can check out resources like 
             <a href="https://www.youtube.com/watch?v=8idr1WZ1A7Q">3Blue1Brown's video</a>, or 
             <a href="https://www.youtube.com/watch?v=6YzrVUVO9M0"> this video from Primer.</a>
         </p>
@@ -124,8 +125,8 @@
             of getting a difference that is more than the observed difference. For simplicity, we will focus on 
             finding the area under the curve to the left of each team’s luck metric. This provides us with a probability 
             for each team that represents the likelihood that they would have performed worse than they did if all 
-            matchups were random. In other words, this calculation answers the question: How likely was it for each 
-            team to lose more games than they did? Any probability below 50% indicates that a team was more likely 
+            matchups were random. <strong>In other words, this calculation answers the question: How likely was it for each 
+            team to lose more games than they did?</strong> Any probability below 50% indicates that a team was more likely 
             than not to win more games than they did, suggesting a degree of unluckiness, while any probability above 
             50% indicates the opposite: a team was more likely than not to lose more games than they did.
         </p>
@@ -134,23 +135,31 @@
         
         <p>
             <strong>{{ew_dic.unlucky_name}}</strong> 
-            had a difference of <strong>{{ew_dic.u_ew_diff}}</strong>. 
+            had an expected win difference of <strong>{{ew_dic.u_ew_diff}}</strong>. 
             After <strong>{{num_weeks}}</strong>
             games, there is a <strong>{{luck_dic.u_prob}}%</strong> 
             probability that they would lose more games than they did, meaning there is a <strong>{{luck_dic.perc_lucky}}%</strong>
             probability that they would win more games than they did. Unlucky!
         </p>
             <strong>{{ew_dic.lucky_name}}</strong>
-            had a difference of <strong>{{ew_dic.l_ew_diff}}</strong>
+            had an expected win difference of <strong>{{ew_dic.l_ew_diff}}</strong>
             . There is a <strong>{{luck_dic.l_prob}}%</strong>
             probability that they would lose more games than they did. Lucky!
         </p>
+
+        <p class="mt-3">
+            The graph below shows how likely it was that each team would lose more than they did. In other words, 
+            how lucky they were. The dotted line indicates the boundary between luckiness and unluckiness. Any team
+            with a bar below the line indiactes that team was unlucky, while any team with a bar above the line 
+            indicates that team was lucky.
+        </p>
+
         <div id="luck_container">
             {{ luck_g|safe }}
         </div>
         <h3 class="mt-3">Consistency vs. Average Score</h3>
         <p class="mt-3">
-            A team's consistenct score is calculated using the following formula: 100 - (s / a * 100), where s is the 
+            A team's consistency score is calculated using the following formula: 100 - (s / a * 100), where s is the 
             standard deviation of a team's weekly points scored throughout the season, and a is the average amount of
             points scored per week. Standard deviation is a measure of how spread out a set of data is from the average.
             A high standard deviation indicates that a data set is more varied or spread out.
@@ -258,11 +267,11 @@
             background missed a significant amount of the season. Clicking on a player's cell will display their 
             name, and the percentage of the season they were inactive.
         </p>
-        <table class="mt-4" id="draft_injuries">
+        <table class="mt-2" id="draft_injuries">
             <tr>
                 <th></th>
                 {% for name in teams_list%}
-                    <th class="small">{{name}}</th>
+                    <th class="small text-end mr-2 p-2">{{name}}</th>
                 {% endfor %}    
             </tr>
             {% for r_num, d_picks in draft_round_dict.items%}
@@ -288,6 +297,9 @@
         </table>
     
     </div>
+
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9696579242160925"
+    crossorigin="anonymous"></script>
 
     <script>
         function toggleLegend(chart_container_ob) {

@@ -41,7 +41,7 @@
             <label for="id">ID: </label>
           </td>
           <td>
-            <input class="txt_input" id="id" type="text" name="id">
+            <input required class="txt_input" id="id" type="text" name="id">
           </td>
           <td>
             <svg onclick="jump_to_section('league_id_instructions')" xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="currentColor" class="bi bi-question-square" viewBox="0 0 16 16">
@@ -51,7 +51,7 @@
           </td>
           <tr class="espn-info">
             <td class="text-end"><label for="swid">SWID: </label></td>
-            <td><input class="txt_input" id="swid" type="text" name="swid" colspan="3"></td>
+            <td><input required class="txt_input" id="swid" type="text" name="swid" colspan="3"></td>
             <td>
               <svg onclick="jump_to_section('swid_s2_instructions')" xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="currentColor" class="bi bi-question-square" viewBox="0 0 16 16">
                 <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2z"/>
@@ -61,7 +61,7 @@
           </tr>
           <tr class="espn-info">
             <td class="text-end"><label for="s2">S2: </label></td>
-            <td><input class="txt_input" id="s2" type="text" name="s2" colspan="3"></td>
+            <td><input required class="txt_input" id="s2" type="text" name="s2" colspan="3"></td>
             <td>
               <svg onclick="jump_to_section('swid_s2_instructions')" xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="currentColor" class="bi bi-question-square" viewBox="0 0 16 16">
                 <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2z"/>
@@ -84,7 +84,7 @@
     <h1>Instructions</h1>
     <hr>
     <div id="sleeper-instructions">
-      <h2 class="mt-4 fw-bold" id="league_id_instructions">League ID</h2>
+      <h2 class="mt-4 fw-bold" id="league_id_instructions_sleeper">League ID</h2>
       <h3 class="mt-3">Desktop</h3>
       <p>To get your League ID, log into your Sleeper account, select your preferred league, then copy the id from the URL after 'league'</p>
       <img class="w-100" src="{% static 'img/leagueidsleeper.png' %}">
@@ -105,7 +105,7 @@
     </div>
     <div id="espn-instructions">
       <p>I highly recommended using a Desktop computer to find this info. Finding, copying and pasting information from mobile is difficult.</p>
-      <h2 class="mt-4 fw-bold" id="league_id_instructions">League ID</h2>
+      <h2 class="mt-4 fw-bold" id="league_id_instructions_espn">League ID</h2>
       <p>To get your League ID, log into your ESPN account in Chrome (doesn't necessarily need to be Chrome, but the images below will look different in other browsers). Once logged in, copy the number after "leagueId" in the URL</p>
       <img class="w-100" src="{% static 'img/leagueid.png' %}">
 
@@ -132,7 +132,6 @@
         updateForm()
       })
       function submitExample() {
-
         var form = document.getElementById("leagueform");
         form.platform.value = "sleeper";
         form.id.value = "988223204793614336";
@@ -140,13 +139,19 @@
       }
 
       function jump_to_section(section_id) {
-        console.log('here')
-        var section = document.getElementById(section_id);
-        console.log(section);
+        var section;
+        if (section_id == 'league_id_instructions') {
+          if (document.getElementById("leagueform").platform.value == 'espn'){
+            section = document.getElementById('league_id_instructions_espn');
+          } else {
+            section = document.getElementById('league_id_instructions_sleeper');
+          }
+        } else {
+          section = document.getElementById(section_id);  
+        }
+
         section.scrollIntoView({ behavior: "smooth", block: "start"});
-        section.classList.remove('flash')
         void section.offsetWidth;
-        section.classList.add('flash')
       }
 
 
@@ -158,8 +163,6 @@
 
         var error_code = document.getElementById('error_code');
         var error_col = document.getElementById('err_text_col');
-
-        console.log(error_code.value);
 
         if (error_code.value == "1") {
           error_col.style.display = 'table-row';

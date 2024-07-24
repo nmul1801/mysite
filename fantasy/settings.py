@@ -41,7 +41,7 @@ LOGGING = {
 
 
 
-ALLOWED_HOSTS = ['nmul1801.pythonanywhere.com', '127.0.0.1']
+ALLOWED_HOSTS = ['nmul1801.pythonanywhere.com', 'www.ffanalysis.org', '127.0.0.1']
 
 
 # Application definition
