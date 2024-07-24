@@ -26,6 +26,7 @@ urlpatterns = [
 # Use include() to add paths from the analysis application
 urlpatterns += [
     path('analysis/', include('analysis.urls')),
+    path('', RedirectView.as_view(url='analysis/', permanent=False))
 ]
 
 # urlpatterns += [
