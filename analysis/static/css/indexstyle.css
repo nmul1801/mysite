@@ -25,7 +25,6 @@ input {
     border-radius: 5px;
 }
 
-
 .txt_input {
     width: 95%;
 }
@@ -54,3 +53,13 @@ img {
     }
 }
 
+#loading_icon {
+    display: none;
+    position: fixed;
+    height: 200px;
+    width: 200px !important;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+}

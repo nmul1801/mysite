@@ -28,7 +28,3 @@ urlpatterns += [
     path('analysis/', include('analysis.urls')),
     path('', RedirectView.as_view(url='analysis/', permanent=False))
 ]
-
-# urlpatterns += [
-#     path('', RedirectView.as_view(url='analysis/', permanent=False)),
-# ]

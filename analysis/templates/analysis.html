@@ -7,9 +7,9 @@
         <div id="notes">
             <p class="mt-3">Note that leagues are treated as having one match per week. So for leagues with a league average match, this result is filtered out of their wins.</p>
         </div>
-        <h3 class="mt-3">Bonage Index</h3>
+        <h3 class="mt-3">Ownage Index</h3>
         <p class="mt-3">
-            Bonage index aims to capture how much a team gets boned each week. A team's BI is calculated by the 
+            Ownage index aims to capture how much a team gets boned each week. A team's BI is calculated by the 
             following: size of league - weekly rank of opponent + 1. For example, if a team in a 10 man league matches 
             up against the team that ends up scoring the second most points that week, their BI would be 10 - 2 + 1,
             giving them a BI of 9 that week.
@@ -166,9 +166,10 @@
         </p>
         <p>
             Take a team that has scored an average of 100 points per week. If they had consistently scored exactly 
-            100 points every week, their standard devation would be zero, resulting in a their weekly scores were
-            more varied, say their weekly scores were 90, 110, 120, 80, 100, then the standard deviation would be 
-            higher, in this case 14.14. Then their consistency score would be 100 - (14.14 / 100 * 100) = 85.86.
+            100 points every week, their standard devation would be zero, resulting in a consistenct score of 100. 
+            If their weekly scores were more varied, say their weekly scores were 90, 110, 120, 80, 100, then the 
+            standard deviation would be higher, in this case 14.14. Then their consistency score would be 
+            100 - (14.14 / 100 * 100) = 85.86.
         </p>
         <div id="consistency_container">
             <div class="row justify-content-end">
@@ -258,7 +259,7 @@
     
         {{second_half_pos_rank|safe}}
 
-        <h3>Injury Bonage</h3>
+        <h3>Injuries</h3>
         <p id="pre-injury-p">
             The table below measures how injured each roster's draft class was throughout the season. Each 
             column represents a roster slot, and each row represents a draft round. Each cell has the picture
