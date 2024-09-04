@@ -235,11 +235,11 @@ def get_bonage_graph(master_dic, num_weeks):
             new_BI = [team[0], "Week " + str(i + 1), team[1][i]]
             all_BI_matrix.append(new_BI)
 
-    df_columns = ["Team", "Week", "BI"]
+    df_columns = ["Team", "Week", "OI"]
 
     df = pd.DataFrame(all_BI_matrix, columns=df_columns)
 
-    fig = px.bar(df, x="Team", y="BI", color="Week", title="Bonage Index")
+    fig = px.bar(df, x="Team", y="OI", color="Week", title="Ownage Index")
     figHTML = fig.to_html(full_html=False)
     return figHTML
 

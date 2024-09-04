@@ -7,11 +7,11 @@ h1 {
 }
 
 .title {
-    color: #6A0DAD;
+    color: #574D68;
 }
 
 #leagueform {
-    background-color: #6A0DAD;
+    background-color: #574D68;
     border-radius: 10px;
     color: white;
     margin: auto;
@@ -56,8 +56,6 @@ img {
 #loading_icon {
     display: none;
     position: fixed;
-    height: 200px;
-    width: 200px !important;
     top: 40%;
     left: 50%;
     transform: translate(-50%, -50%);

@@ -5,17 +5,16 @@
   <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Ultra" />
   <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
 
-  <img id="loading_icon" src="{% static 'img/loading.gif' %}">
+  <img id="loading_icon" src="{% static 'img/football_loading.gif' %}" alt="Loading...">
+
   <div id="content">
     <div class="col-md-6 offset-md-3">
       <nav class="d-flex justify-content-between">
         <img src="{% static 'img/fflogo.png' %}">
-        {% comment %} <a class="lead m-auto" href="#"> About</a> {% endcomment %}
-        {% comment %} <a class="lead m-auto" href="#">Contact</a> {% endcomment %}
       </nav>
       <input type="hidden" id="error_code" value={{ error_code }}>
       
-      <form name="leagueform" id="leagueform" class="p-3" onsubmit="console.log('submitted')" action="/analysis/analysis/" method="get">
+      <form name="leagueform" id="leagueform" class="p-3" action="/analysis/analysis/" method="get">
         
         <table class="w-50 m-auto lead" cellspacing="5" cellpadding="5">
           <tr id="err_text_col">
@@ -139,26 +138,37 @@
   </div>
 
   <script>
-    $(document).ready(function() {
-      updateForm()
-    })
-
     function showLoading() {
-      var loading_icon = document.getElementById("loading_icon");
-      var page_content = document.getElementById("content");
+      const loading_icon = document.getElementById("loading_icon");
+      const page_content = document.getElementById("content");
       page_content.style.display = 'none';
       loading_icon.style.display = 'block';
-      
+      return true;
+    }
+  
+    function hideLoading() {
+      const loading_icon = document.getElementById("loading_icon");
+      const page_content = document.getElementById("content");
+      page_content.style.display = 'block';
+      loading_icon.style.display = 'none';
     }
 
-    
-    
+    document.addEventListener("DOMContentLoaded", function () {
+      hideLoading();
+      updateForm();
+    });
+
+    // when user returns presses back, hide loading gif
+    window.addEventListener("pageshow", function(event) {
+        hideLoading();
+    });
+  
     function submitExample() {
       var form = document.getElementById("leagueform");
       form.platform.value = "sleeper";
       form.id.value = "988223204793614336";
       showLoading();
-      form.submit();
+      document.getElementById("leagueform").submit();
     }
 
     function jump_to_section(section_id) {
