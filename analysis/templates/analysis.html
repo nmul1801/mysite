@@ -1,6 +1,15 @@
 {% extends "base_generic.html" %}
 {% load static %}
 {% block content %}
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-MT5LR4GEMS"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-MT5LR4GEMS');
+    </script>
     <link rel="stylesheet" href="{% static 'css/analysisstyle.css' %}"> 
     <div class="mt-4 col-md-8 offset-md-2">
         <h1 class="text-center">Score Analysis</h1>
