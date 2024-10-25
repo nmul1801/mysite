@@ -22,12 +22,12 @@ class League:
         print('initializing league')
         self.platform = platform
         self.start_week = 0
-
+        self.num_weeks = self.get_cur_finished_nfl_week()
         # cases for constructing league
         if platform == 'espn':
             # catch where league doesn't exist
             try: 
-                league_ob = ESPN_League(league_id=league_id, year=2023, espn_s2=s2, swid=swid)
+                league_ob = ESPN_League(league_id=league_id, year=2024, espn_s2=s2, swid=swid)
             except Exception as e:
                 # error case 
                 return None
@@ -53,8 +53,6 @@ class League:
             
     def _construct_league_espn(self, league):
         self.random_team_lineup = []
-        reg_szn_games = league.settings.reg_season_count
-        self.num_weeks = reg_szn_games
         self.num_teams = len(league.teams)
         self.teams = {}
 
@@ -111,8 +109,6 @@ class League:
         print('done with draft')
 
     def _construct_league_sleeper(self, league_id):
-        self.num_weeks = self._get_num_weeks_sleeper(league_id)
-
         # load resources
         r = requests.get(url="https://api.sleeper.app/v1/league/" + str(league_id))
         league_ob = json.loads(r.text)
@@ -183,7 +179,7 @@ class League:
         with open(path,"r") as file:
             player_data = json.load(file)
         # used to get the player position ranks
-        league = ESPN_League(league_id=1927423163, year=2023, espn_s2='AECM85hbXZD%2FFG9s2ALIuE4XrHUPYodyji1oDVpO17ISfafgY9b9kxJ4QZaG1FiR1nVU0UW%2FtIQoPvtOfxxlA2y9xKn4dFzG1FO%2BNdP6ZsZZNly5BCtfCznME5sc8OJhBcY7nEjYRQ6b6tAtQvXYyvV65Ya6Hk4klxd0iIBzk6S82ZZiob5i8%2BThUSpeh0sUypUA%2FdpC06ZhaEVy9B0qVL%2B3tL8T3pK44imaNmSCGrLEmtTb5xmhmKIQYPPmE99IEvNy9ltr9DfPmJucfiPMVAfBcWaZUpEAE160r4SsIszqsw%3D%3D', swid='F71F32C4-9869-4DFB-A620-ADD15AA67520')
+        league = ESPN_League(league_id=1927423163, year=2024, espn_s2='AECM85hbXZD%2FFG9s2ALIuE4XrHUPYodyji1oDVpO17ISfafgY9b9kxJ4QZaG1FiR1nVU0UW%2FtIQoPvtOfxxlA2y9xKn4dFzG1FO%2BNdP6ZsZZNly5BCtfCznME5sc8OJhBcY7nEjYRQ6b6tAtQvXYyvV65Ya6Hk4klxd0iIBzk6S82ZZiob5i8%2BThUSpeh0sUypUA%2FdpC06ZhaEVy9B0qVL%2B3tL8T3pK44imaNmSCGrLEmtTb5xmhmKIQYPPmE99IEvNy9ltr9DfPmJucfiPMVAfBcWaZUpEAE160r4SsIszqsw%3D%3D', swid='F71F32C4-9869-4DFB-A620-ADD15AA67520')
         player_id_to_team_dict, self.draft_rounds = {}, {}
         player_name_list = list()
         # get all players with an espn id
@@ -308,6 +304,11 @@ class League:
                 ranked_list.append(i + 1)
         return ranked_list 
     
+    def get_cur_finished_nfl_week(self):
+        res_nfl = requests.get(url="https://api.sleeper.app/v1/state/nfl")
+        nfl_ob = json.loads(res_nfl.text)    
+        return nfl_ob['week'] - 1
+
     def get_average_pos_rank_graph(self, half=1):
         all_avgs = []
         # teams
@@ -361,12 +362,6 @@ class League:
         for round_num, picks in self.draft_rounds.items():
             for pick_num, p in picks.items():
                 draft_table_dict[round_num][p.on_team_id].append({'name': p.name, 'percent_injured': p.percent_injured})
-
-    def _get_num_weeks_sleeper(self, league_id):
-        r = requests.get(url="https://api.sleeper.app/v1/league/" + str(league_id))
-        league_ob = json.loads(r.text)
-        p_start = league_ob['settings']['playoff_week_start']
-        return p_start - 1
     
     def _create_rank_list(self, num_list):
         ranked_list = [1]
