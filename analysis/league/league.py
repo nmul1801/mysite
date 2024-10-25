@@ -280,7 +280,7 @@ class League:
         for round_num, picks_dict in self.draft_rounds.items():
             for p_num, p in picks_dict.items():
                 num_week_injured = 0
-                for week_num in range(1, self.num_weeks):
+                for week_num in range(1, self.num_weeks + 1):
                     if week_num not in p.stats:
                         num_week_injured += 1
                     elif len(p.stats[week_num]['breakdown']) == 0:
