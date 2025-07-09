@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fantasy Football API Progress Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .progress-container {
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #45a049);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .progress-text {
+            font-size: 14px;
+            color: #666;
+            margin: 5px 0;
+        }
+        .status {
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .processing { color: #2196F3; }
+        button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #1976D2;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 0;
+        }
+        .log-time {
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Fantasy Football API Progress Demo</h1>
+        
+        <div class="progress-container">
+            <h3>League Assembly Progress</h3>
+            <div class="status" id="status">Ready to start</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text" id="progressText">0%</div>
+            <div class="progress-text" id="progressMessage">Click "Start Assembly" to begin</div>
+        </div>
+
+        <div>
+            <button onclick="startAssembly()" id="startBtn">Start Assembly</button>
+            <button onclick="checkProgress()" id="checkBtn" disabled>Check Progress</button>
+            <button onclick="clearLog()" id="clearBtn">Clear Log</button>
+        </div>
+
+        <div class="log" id="log">
+            <div class="log-entry">
+                <span class="log-time">[System]</span> Ready to test progress tracking
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentAssemblyId = null;
+        let progressInterval = null;
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `<span class="log-time">[${timestamp}]</span> ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+            log('Log cleared');
+        }
+
+        function updateProgress(percent, message, status) {
+            document.getElementById('progressFill').style.width = percent + '%';
+            document.getElementById('progressText').textContent = percent + '%';
+            document.getElementById('progressMessage').textContent = message;
+            
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = status;
+            statusDiv.className = 'status ' + (status === 'Complete' ? 'success' : 
+                                              status === 'Error' ? 'error' : 'processing');
+        }
+
+        async function startAssembly() {
+            const startBtn = document.getElementById('startBtn');
+            const checkBtn = document.getElementById('checkBtn');
+            
+            startBtn.disabled = true;
+            checkBtn.disabled = false;
+            
+            log('Starting league assembly...');
+            updateProgress(0, 'Initializing...', 'Starting');
+
+            try {
+                // Use the streaming endpoint
+                const response = await fetch('/api/v1/leagues/assemble-scoring-stream/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        platform: 'sleeper',
+                        league_id: '1103905062545362944'
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const data = JSON.parse(line.slice(6));
+                                log(`Received: ${JSON.stringify(data)}`);
+
+                                if (data.type === 'progress') {
+                                    updateProgress(data.percent, data.message, 'Processing');
+                                } else if (data.type === 'complete') {
+                                    updateProgress(100, 'Assembly complete!', 'Complete');
+                                    currentAssemblyId = data.result.league_id;
+                                    log(`Assembly completed with ID: ${currentAssemblyId}`);
+                                    startBtn.disabled = false;
+                                    checkBtn.disabled = true;
+                                } else if (data.type === 'error') {
+                                    updateProgress(0, data.error, 'Error');
+                                    log(`Error: ${data.error}`);
+                                    startBtn.disabled = false;
+                                    checkBtn.disabled = true;
+                                }
+                            } catch (e) {
+                                log(`Error parsing SSE data: ${e.message}`);
+                            }
+                        }
+                    }
+                }
+
+            } catch (error) {
+                log(`Error: ${error.message}`);
+                updateProgress(0, 'Assembly failed', 'Error');
+                startBtn.disabled = false;
+                checkBtn.disabled = true;
+            }
+        }
+
+        async function checkProgress() {
+            if (!currentAssemblyId) {
+                log('No assembly ID available');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/progress/${currentAssemblyId}/`);
+                const data = await response.json();
+                
+                log(`Progress check: ${JSON.stringify(data)}`);
+                updateProgress(data.percent, data.message, data.status);
+                
+            } catch (error) {
+                log(`Error checking progress: ${error.message}`);
+            }
+        }
+
+        // Auto-check progress every 2 seconds when processing
+        function startProgressPolling() {
+            if (progressInterval) clearInterval(progressInterval);
+            progressInterval = setInterval(checkProgress, 2000);
+        }
+
+        function stopProgressPolling() {
+            if (progressInterval) {
+                clearInterval(progressInterval);
+                progressInterval = null;
+            }
+        }
+    </script>
+</body>
+</html> 

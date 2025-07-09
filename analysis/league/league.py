@@ -18,11 +18,18 @@ from scipy.integrate import simps
 class League:
 
     # Constructor for league object - takes in platform, as well as any identifying league parameters
-    def __init__(self, platform, league_id, s2=None, swid=None):
+    def __init__(self, platform, league_id, s2=None, swid=None, progress_id=None, progress_callback=None):
         print('initializing league')
         self.platform = platform
         self.start_week = 0
-        self.num_weeks = self.get_cur_finished_nfl_week()
+        self.num_weeks = 12
+        self.progress_id = progress_id
+        self.progress_callback = progress_callback
+        
+        if self.num_weeks < 1:
+            print(f"Warning: num_weeks is {self.num_weeks}, setting to 1")
+            self.num_weeks = 1
+            
         # cases for constructing league
         if platform == 'espn':
             # catch where league doesn't exist
@@ -38,9 +45,7 @@ class League:
             # try to get response, error if none
             r = requests.get(url="https://api.sleeper.app/v1/league/" + str(league_id) + "/rosters")
             if r.status_code != 200:
-                # return error if sleeper league isn't found
                 return None
-                # return render(request, 'index.html', context={'error_code': 1})
             
             self._construct_league_sleeper(league_id)
 
@@ -108,17 +113,46 @@ class League:
                 
         print('done with draft')
 
+    def _update_progress(self, message, percent):
+        """Update progress if progress_id is set"""
+        import time
+        
+        if self.progress_id:
+            from django.core.cache import cache
+            cache.set(f"progress_{self.progress_id}", {
+                'status': 'processing',
+                'message': message,
+                'percent': percent
+            }, timeout=3600)
+        
+        # If we have a progress callback, use it for real-time streaming
+        if self.progress_callback:
+            try:
+                # Call the callback with the progress update
+                self.progress_callback(message, percent)
+                # Add a small delay to make progress visible
+                time.sleep(0.3)  # Increased delay for more visible progress
+            except Exception as e:
+                print(f"Error in progress callback: {e}")
+
     def _construct_league_sleeper(self, league_id):
+        print('constructing league')
+        self._update_progress("Loading league data...", 5)
+        
         # load resources
         r = requests.get(url="https://api.sleeper.app/v1/league/" + str(league_id))
         league_ob = json.loads(r.text)
+        self._update_progress("Loaded league data", 10)
 
         r = requests.get(url="https://api.sleeper.app/v1/league/" + str(league_id) + "/rosters")
         rosters_ob = json.loads(r.text)
+        print('loaded rosters')
+        self._update_progress("Loaded rosters", 15)
 
         r = requests.get(url="https://api.sleeper.app/v1/league/" + str(league_id) + "/users")
         users_ob = json.loads(r.text)
-
+        print('loaded users')
+        self._update_progress("Loaded users", 20)
         self.draft_id = league_ob['draft_id']
 
         # get display names
@@ -146,8 +180,12 @@ class League:
             
             cur_team.set_win_list(win_list_mapped)
 
+        self._update_progress("Processing weekly matchups...", 25)
+
         # iterate through weeks
         for i in range(1, self.num_weeks + 1):
+            self._update_progress(f"Analyzing week {i}...", 25 + (i / self.num_weeks) * 50)
+            
             r = requests.get(url="https://api.sleeper.app/v1/league/" + str(league_id) + "/matchups/" + str(i))
             matchup_ob = json.loads(r.text)
             matchcup_dic = {}
@@ -163,9 +201,12 @@ class League:
                 else:
                     matchcup_dic[m_id] = r_id
 
+        self._update_progress("Processing draft data...", 80)
         self._construct_draft_sleeper(league_id)
+        self._update_progress("Finalizing league data...", 95)
 
     def _construct_draft_sleeper(self, league_id):
+        print('constructing draft')
         r = requests.get(url="https://api.sleeper.app/v1/draft/" + str(self.draft_id) + "/picks")
 
         draft_ob = json.loads(r.text)
@@ -294,20 +335,17 @@ class League:
         p_start = league_ob['settings']['playoff_week_start']
         return p_start - 1
     
-    def _create_rank_list(self, num_list):
-        ranked_list = [1]
-        for i, cur_score in enumerate(num_list):
-            if i == 0: continue
-            if cur_score == num_list[i - 1]:
-                ranked_list.append(ranked_list[-1])
-            else:
-                ranked_list.append(i + 1)
-        return ranked_list 
-    
     def get_cur_finished_nfl_week(self):
-        res_nfl = requests.get(url="https://api.sleeper.app/v1/state/nfl")
-        nfl_ob = json.loads(res_nfl.text)    
-        return nfl_ob['week'] - 1
+        try:
+            res_nfl = requests.get(url="https://api.sleeper.app/v1/state/nfl")
+            nfl_ob = json.loads(res_nfl.text)    
+            current_week = nfl_ob['week'] - 1
+            # Ensure we don't return negative or zero values
+            return max(current_week, 1)
+        except Exception as e:
+            print(f"Error getting NFL week: {e}")
+            # Return a default value if API call fails
+            return 1
 
     def get_average_pos_rank_graph(self, half=1):
         all_avgs = []
@@ -371,8 +409,8 @@ class League:
                 ranked_list.append(ranked_list[-1])
             else:
                 ranked_list.append(i + 1)
-        return ranked_list
-
+        return ranked_list 
+    
     def get_expected_wins_graph(self):
         all_team_list = list()
         for t in self.teams.values():
@@ -444,9 +482,15 @@ class League:
         variance = n * p * (1 - p)
         luck_P_list = list()
 
+        # Ensure variance is positive
+        if variance <= 0:
+            print(f"Warning: variance is {variance}, using fallback calculation")
+            # Use a minimum variance based on at least 1 week
+            variance = 1 * p * (1 - p)  # This equals 0.25
     
         for ew in ew_diff_dict.values():
-            z_score = ew / math.sqrt(variance) if variance != 0 else 0
+            print("variance", variance)
+            z_score = ew / math.sqrt(variance) if variance > 0 else 0
             p = norm.cdf(z_score)
             luck_P_list.append(round((p * 100), 2))
 
@@ -505,8 +549,30 @@ class League:
         df = pd.DataFrame()
 
         df["Team"] = [t.get_name() for t in self.teams.values()]
-        df["Consistency Score"] = [ 100 - ((statistics.stdev(t.get_score_list()) / (sum(t.get_score_list()) / self.num_weeks)) * 100) for t in self.teams.values()]
-        df["Average Points Per Week"] = [sum(t.get_score_list()) / self.num_weeks for t in self.teams.values()]
+        
+        # Add safety checks for division by zero
+        consistency_scores = []
+        avg_points = []
+        
+        for t in self.teams.values():
+            score_list = t.get_score_list()
+            total_points = sum(score_list)
+            
+            # Calculate average points per week with safety check
+            avg_points_per_week = total_points / self.num_weeks if self.num_weeks > 0 else 0
+            avg_points.append(avg_points_per_week)
+            
+            # Calculate consistency score with safety check
+            if len(score_list) > 1 and avg_points_per_week > 0:
+                stdev = statistics.stdev(score_list)
+                consistency_score = 100 - ((stdev / avg_points_per_week) * 100)
+            else:
+                consistency_score = 100  # Default to 100 if no variance or no points
+            
+            consistency_scores.append(consistency_score)
+        
+        df["Consistency Score"] = consistency_scores
+        df["Average Points Per Week"] = avg_points
 
         df = df.sort_values(by=['Average Points Per Week'])
         fig = px.scatter(df, y="Consistency Score", x="Average Points Per Week", color="Team")
@@ -567,6 +633,11 @@ class League:
         num_games = self.num_weeks
         p = 0.5
         var = num_games * p * (1 - p)
+        
+        # Ensure variance is positive
+        if var <= 0:
+            print(f"Warning: variance in probdcurve is {var}, using fallback calculation")
+            var = 1 * p * (1 - p)  # This equals 0.25
 
         mean = 0  # Mean of the distribution
         standard_deviation = np.sqrt(var)  # Standard deviation of the distribution
@@ -575,7 +646,22 @@ class League:
 
         fig = px.line(x=x_values, y=y_values, title='Normal Distribution Curve')
         
-        x_shade = self.lucky_team_ew_diff  # Adjust as needed
+        # Check if lucky_team_ew_diff is set, if not calculate it
+        if not hasattr(self, 'lucky_team_ew_diff') or not hasattr(self, 'lucky_team'):
+            # Calculate the luckiest team
+            ew_diff_dict = {t.id : sum(t.get_wins()) - sum(t.get_ew_list()) for t in self.teams.values()}
+            ew_diff_dict = dict(sorted(ew_diff_dict.items(), key=lambda x: x[1], reverse=True))
+            
+            if len(ew_diff_dict) > 0:
+                lucky_team_id = list(ew_diff_dict.items())[0][0]
+                self.lucky_team = self.teams[lucky_team_id]
+                self.lucky_team_ew_diff = round(sum(self.lucky_team.get_wins()) - sum(self.lucky_team.get_ew_list()), 2)
+            else:
+                # Fallback if no teams
+                self.lucky_team_ew_diff = 0
+                self.lucky_team = None
+        
+        x_shade = self.lucky_team_ew_diff
 
         # Generate the x and y values for shading
         x_shade_values = np.linspace(-5, x_shade, 1000)
@@ -595,7 +681,14 @@ class League:
         )
 
         fig.add_trace(go.Scatter(x=[x_shade], y=[normal_pdf(x_shade, mean, standard_deviation)], mode='markers', name='Point'))
-        fig.add_annotation(x=x_shade, y=normal_pdf(x_shade, mean, standard_deviation), text=f'Luck metric for {self.lucky_team.get_name()}<br>Wins - Expected wins = {self.lucky_team_ew_diff}<br>Area under curve = {area_under_curve:.2f}', showarrow=True, arrowhead=1)
+        
+        if self.lucky_team:
+            team_name = self.lucky_team.get_name()
+            annotation_text = f'Luck metric for {team_name}<br>Wins - Expected wins = {self.lucky_team_ew_diff}<br>Area under curve = {area_under_curve:.2f}'
+        else:
+            annotation_text = f'Luck metric<br>Wins - Expected wins = {self.lucky_team_ew_diff}<br>Area under curve = {area_under_curve:.2f}'
+            
+        fig.add_annotation(x=x_shade, y=normal_pdf(x_shade, mean, standard_deviation), text=annotation_text, showarrow=True, arrowhead=1)
         fig.update_layout(title='Normal Distribution Curve with Labeled Point', xaxis_title='x', yaxis_title='Probability Density')
 
         # Show the plot
@@ -628,6 +721,6 @@ class League:
                 )
             )
 
-        fig_html = fig.to_html(full_html=False, config={'dragmode': 'orbit', 'scrollZoom': False, 'displayModeBar': False})
+        fig_html = fig.to_html(full_html=False, config={'scrollZoom': False, 'displayModeBar': False})
 
         return fig_html

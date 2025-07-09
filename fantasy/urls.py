@@ -15,16 +15,10 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
-from django.urls import include
-from django.views.generic import RedirectView
+from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-]
-
-# Use include() to add paths from the analysis application
-urlpatterns += [
-    path('analysis/', include('analysis.urls')),
-    path('', RedirectView.as_view(url='analysis/', permanent=False))
+    path('', include('analysis.urls')),
+    path('api/v1/', include('analysis.api_urls')),
 ]
