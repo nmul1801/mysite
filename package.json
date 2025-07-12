@@ -1,0 +1,19 @@
+{
+  "name": "fantasy-football-analysis",
+  "version": "1.0.0",
+  "description": "Fantasy Football Analysis Platform",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "python3 manage.py runserver",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "install:all": "npm install && cd frontend && npm install",
+    "setup": "npm run install:all && python3 manage.py migrate"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "keywords": ["fantasy-football", "analysis", "django", "react"],
+  "author": "",
+  "license": "MIT"
+} 

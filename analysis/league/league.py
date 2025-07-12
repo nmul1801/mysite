@@ -47,6 +47,8 @@ class League:
         elif platform == 'sleeper':
             # try to get response, error if none
             r = requests.get(url="https://api.sleeper.app/v1/league/" + str(league_id) + "/rosters")
+
+            print(r.text)
             if r.status_code != 200:
                 return None
             
@@ -184,7 +186,8 @@ class League:
             cur_team = self.teams[ros['roster_id']]
 
             # set team name, wins
-            cur_team.set_team_name(user_id_to_disp_name[ros['owner_id']])
+            team_name = user_id_to_disp_name[ros['owner_id']]
+            cur_team.set_team_name(team_name)
             
             win_list_mapped = [mapping_wins[g] for g in ros['metadata']['record']]
             
@@ -450,6 +453,32 @@ class League:
                 ranked_list.append(i + 1)
         return ranked_list 
     
+    def get_expected_wins_data(self):
+        """Get expected wins data for frontend chart rendering"""
+        all_team_list = list()
+        for t in self.teams.values():
+            (name, ew_list, win_list) = t.get_name(), t.get_ew_list(), t.get_wins()
+            all_team_list.append((name, ew_list, win_list))
+
+        all_team_list.sort(key=lambda team: sum(team[1]), reverse=True)
+
+        # Prepare data for frontend
+        chart_data = {
+            'teams': [],
+            'weeks': [],
+            'expected_wins': [],
+            'colors': []
+        }
+        
+        for i in range(self.num_weeks):
+            for team in all_team_list:
+                chart_data['teams'].append(team[0])
+                chart_data['weeks'].append(f"Week {i + 1}")
+                chart_data['expected_wins'].append(team[1][i])
+                chart_data['colors'].append(self.primary_color if i % 2 == 0 else self.secondary_color)
+        
+        return chart_data
+
     def get_expected_wins_graph(self):
         all_team_list = list()
         for t in self.teams.values():
@@ -475,14 +504,50 @@ class League:
         figHTML = self._create_fig_layout(fig, True)
         return figHTML
 
-    def get_ew_difference_graph(self):
-        
+    def get_ew_difference_data(self):
+        """Get expected wins difference data for frontend chart rendering"""
         ew_diff_dict = {t.id : sum(t.get_wins()) - sum(t.get_ew_list()) for t in self.teams.values()}
         ew_diff_dict = dict(sorted(ew_diff_dict.items(), key=lambda x: x[1], reverse=True))
 
+        # Get lucky and unlucky teams
+        lucky_team = self.teams[list(ew_diff_dict.items())[0][0]]
+        unlucky_team = self.teams[list(ew_diff_dict.items())[-1][0]]
+
+        self.lucky_team = lucky_team
+        self.lucky_team_ew_diff = round(sum(lucky_team.get_wins()) - sum(lucky_team.get_ew_list()), 2)
+
+        # Prepare summary data
+        summary = {
+            'lucky_name': lucky_team.get_name(), 
+            'l_total_wins': round(sum(lucky_team.get_wins()), 2), 
+            'l_total_ex_wins': round(sum(lucky_team.get_ew_list()), 2),
+            'l_ew_diff': round(sum(lucky_team.get_wins()) - sum(lucky_team.get_ew_list()), 2),
+            'unlucky_name': unlucky_team.get_name(), 
+            'u_total_wins': round(sum(unlucky_team.get_wins()), 2), 
+            'u_total_ex_wins': round(sum(unlucky_team.get_ew_list()), 2),
+            'u_ew_diff': round(sum(unlucky_team.get_ew_list()) - sum(unlucky_team.get_wins()), 2)
+        }
+
+        # Prepare chart data
+        chart_data = {
+            'teams': [],
+            'ew_difference': []
+        }
+        
+        for ew_entry in ew_diff_dict.items():
+            chart_data['teams'].append(self.teams[ew_entry[0]].get_name())
+            chart_data['ew_difference'].append(ew_entry[1])
+        
+        return {
+            'chart_data': chart_data,
+            'summary': summary
+        }
+
+    def get_ew_difference_graph(self):
+        ew_diff_dict = {t.id : sum(t.get_wins()) - sum(t.get_ew_list()) for t in self.teams.values()}
+        ew_diff_dict = dict(sorted(ew_diff_dict.items(), key=lambda x: x[1], reverse=True))
 
         # dictionary for team display
-
         lucky_team = self.teams[list(ew_diff_dict.items())[0][0]]
         unlucky_team = self.teams[list(ew_diff_dict.items())[-1][0]]
 
@@ -511,7 +576,49 @@ class League:
         figHTML = self._create_fig_layout(fig, False)
         
         return ew_team_dic, figHTML
+
+    def get_luck_data(self):
+        """Get luck analysis data for frontend chart rendering"""
+        ew_diff_dict = {t.get_name() : sum(t.get_wins()) - sum(t.get_ew_list()) for t in self.teams.values()}
+        ew_diff_dict = dict(sorted(ew_diff_dict.items(), key=lambda x: x[1]))
+
+        n = self.num_weeks
+        p = 0.5
+        variance = n * p * (1 - p)
+        luck_P_list = list()
+
+        # Ensure variance is positive
+        if variance <= 0:
+            print(f"Warning: variance is {variance}, using fallback calculation")
+            variance = 1 * p * (1 - p)  # This equals 0.25
     
+        for ew in ew_diff_dict.values():
+            z_score = ew / math.sqrt(variance) if variance > 0 else 0
+            p = norm.cdf(z_score)
+            luck_P_list.append(round((p * 100), 2))
+
+        # Prepare summary data
+        summary = {
+            'l_prob': luck_P_list[-1], 
+            'u_prob': luck_P_list[0], 
+            'perc_lucky': round(100 - luck_P_list[0], 2)
+        }
+
+        # Prepare chart data
+        chart_data = {
+            'teams': [],
+            'likelihood': []
+        }
+        
+        for i, entry in enumerate(ew_diff_dict.items()):
+            chart_data['teams'].append(entry[0])
+            chart_data['likelihood'].append(luck_P_list[i])
+        
+        return {
+            'chart_data': chart_data,
+            'summary': summary
+        }
+
     def get_luck_graph(self):
         ew_diff_dict = {t.get_name() : sum(t.get_wins()) - sum(t.get_ew_list()) for t in self.teams.values()}
         ew_diff_dict = dict(sorted(ew_diff_dict.items(), key=lambda x: x[1]))
@@ -524,11 +631,9 @@ class League:
         # Ensure variance is positive
         if variance <= 0:
             print(f"Warning: variance is {variance}, using fallback calculation")
-            # Use a minimum variance based on at least 1 week
             variance = 1 * p * (1 - p)  # This equals 0.25
     
         for ew in ew_diff_dict.values():
-            print("variance", variance)
             z_score = ew / math.sqrt(variance) if variance > 0 else 0
             p = norm.cdf(z_score)
             luck_P_list.append(round((p * 100), 2))
@@ -550,13 +655,36 @@ class League:
             color_discrete_sequence=[self.primary_color]
             )
         
-        
-
         fig.add_hline(y=50, line_dash="dash", line_color="red", annotation_text="Line of Luck", annotation_position="top left")
 
         figHTML = self._create_fig_layout(fig, True)
         
         return luck_dic, figHTML
+
+    def get_bonage_data(self):
+        """Get bonage (strength of schedule) data for frontend chart rendering"""
+        all_team_list = list()
+        for t in self.teams.values():
+            all_team_list.append((t.get_name(), t.get_bi_list()))
+
+        all_team_list.sort(key=lambda team: sum(team[1]), reverse=True)
+
+        # Prepare data for frontend
+        chart_data = {
+            'teams': [],
+            'weeks': [],
+            'bi': [],
+            'colors': []
+        }
+        
+        for i in range(self.num_weeks):
+            for team in all_team_list:
+                chart_data['teams'].append(team[0])
+                chart_data['weeks'].append(f"Week {i + 1}")
+                chart_data['bi'].append(team[1][i])
+                chart_data['colors'].append(self.primary_color if i % 2 == 0 else self.secondary_color)
+        
+        return chart_data
 
     def get_bonage_graph(self):
         all_team_list = list()
@@ -583,7 +711,37 @@ class League:
         figHTML = self._create_fig_layout(fig, True)
 
         return figHTML
-    
+
+    def get_consistency_data(self):
+        """Get consistency analysis data for frontend chart rendering"""
+        teams = []
+        consistency_scores = []
+        avg_points = []
+        
+        for t in self.teams.values():
+            teams.append(t.get_name())
+            score_list = t.get_score_list()
+            total_points = sum(score_list)
+            
+            # Calculate average points per week with safety check
+            avg_points_per_week = total_points / self.num_weeks if self.num_weeks > 0 else 0
+            avg_points.append(avg_points_per_week)
+            
+            # Calculate consistency score with safety check
+            if len(score_list) > 1 and avg_points_per_week > 0:
+                stdev = statistics.stdev(score_list)
+                consistency_score = 100 - ((stdev / avg_points_per_week) * 100)
+            else:
+                consistency_score = 100  # Default to 100 if no variance or no points
+            
+            consistency_scores.append(consistency_score)
+        
+        return {
+            'teams': teams,
+            'consistency_scores': consistency_scores,
+            'avg_points': avg_points
+        }
+
     def get_consistency_graph(self):
         df = pd.DataFrame()
 

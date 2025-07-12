@@ -14,7 +14,7 @@ from analysis.league.league import League
 def assemble_scoring_league(request):
     """
     Assemble league data for scoring analysis.
-    Returns a unique league_id for subsequent analysis calls.
+    Returns the original league_id for subsequent analysis calls.
     """
     try:
         # Extract parameters
@@ -41,13 +41,13 @@ def assemble_scoring_league(request):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Cache the league object
-        cache_key = f"league_scoring_{assembly_id}"
+        # Cache the league object with original league_id
+        cache_key = f"league_scoring_{league_id}"
         cache.set(cache_key, league, timeout=3600)  # Cache for 1 hour
         
-        # Return minimal response with league_id
+        # Return response with original league_id
         response_data = {
-            'league_id': assembly_id,
+            'league_id': league_id,
             'status': 'ready'
         }
         
@@ -71,7 +71,8 @@ def progress_stream(assembly_id, platform, league_id, s2=None, swid=None):
         league = League(platform, league_id, s2=s2, swid=swid, progress_id=assembly_id, progress_callback=progress_callback)
         # Remove callback before caching
         league.progress_callback = None
-        cache_key = f"league_scoring_{assembly_id}"
+        # Cache with original league_id
+        cache_key = f"league_scoring_{league_id}"
         cache.set(cache_key, league, timeout=3600)
         cache.set(f"progress_{assembly_id}", {
             'status': 'complete',
@@ -86,7 +87,7 @@ def progress_stream(assembly_id, platform, league_id, s2=None, swid=None):
     while True:
         update = q.get()
         if update == 'COMPLETE':
-            yield f"data: {json.dumps({'type': 'complete', 'result': {'league_id': assembly_id, 'status': 'ready'}})}\n\n"
+            yield f"data: {json.dumps({'type': 'complete', 'result': {'league_id': league_id, 'status': 'ready'}})}\n\n"
             break
         message, percent = update
         yield f"data: {json.dumps({'type': 'progress', 'message': message, 'percent': percent})}\n\n"
@@ -154,7 +155,7 @@ def get_progress(request, assembly_id):
 def assemble_draft_league(request):
     """
     Assemble league data for draft analysis.
-    Returns a unique league_id for subsequent analysis calls.
+    Returns the original league_id for subsequent analysis calls.
     """
     try:
         # Extract parameters
@@ -181,13 +182,13 @@ def assemble_draft_league(request):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Cache the league object
-        cache_key = f"league_draft_{assembly_id}"
+        # Cache the league object with original league_id
+        cache_key = f"league_draft_{league_id}"
         cache.set(cache_key, league, timeout=86400)  # Cache for 24 hours
         
-        # Return minimal response with league_id
+        # Return response with original league_id
         response_data = {
-            'league_id': assembly_id,
+            'league_id': league_id,
             'status': 'ready'
         }
         
@@ -214,16 +215,17 @@ def _get_cached_league(league_id, assembly_type):
 
 @api_view(['GET'])
 def expected_wins_analysis(request, league_id):
-    """Get expected wins analysis chart"""
+    """Get expected wins analysis data"""
     try:
         league, error = _get_cached_league(league_id, 'scoring')
         if error:
             return Response(error, status=status.HTTP_404_NOT_FOUND)
         
-        chart_html = league.get_expected_wins_graph()
+        # Get the raw data instead of HTML
+        chart_data = league.get_expected_wins_data()
         
         response_data = {
-            'chart_html': chart_html,
+            'chart_data': chart_data,
             'metadata': {
                 'league_id': league_id,
                 'analysis_type': 'expected_wins',
@@ -236,6 +238,7 @@ def expected_wins_analysis(request, league_id):
         return Response(response_data)
         
     except Exception as e:
+        print(f"DEBUG: Exception in expected_wins_analysis: {str(e)}")
         return Response(
             {'error': f'Analysis failed: {str(e)}'}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -244,23 +247,24 @@ def expected_wins_analysis(request, league_id):
 
 @api_view(['GET'])
 def ew_difference_analysis(request, league_id):
-    """Get expected wins difference analysis chart"""
+    """Get expected wins difference analysis data"""
     try:
         league, error = _get_cached_league(league_id, 'scoring')
         if error:
             return Response(error, status=status.HTTP_404_NOT_FOUND)
         
-        ew_team_dic, chart_html = league.get_ew_difference_graph()
+        # Get the raw data instead of HTML
+        analysis_data = league.get_ew_difference_data()
         
         response_data = {
-            'chart_html': chart_html,
+            'chart_data': analysis_data['chart_data'],
             'metadata': {
                 'league_id': league_id,
                 'analysis_type': 'ew_difference',
                 'chart_type': 'bar',
                 'num_teams': len(league.teams),
                 'num_weeks': league.num_weeks,
-                'summary': ew_team_dic
+                'summary': analysis_data['summary']
             }
         }
         
@@ -275,23 +279,24 @@ def ew_difference_analysis(request, league_id):
 
 @api_view(['GET'])
 def luck_analysis(request, league_id):
-    """Get luck analysis chart"""
+    """Get luck analysis data"""
     try:
         league, error = _get_cached_league(league_id, 'scoring')
         if error:
             return Response(error, status=status.HTTP_404_NOT_FOUND)
         
-        luck_dic, chart_html = league.get_luck_graph()
+        # Get the raw data instead of HTML
+        analysis_data = league.get_luck_data()
         
         response_data = {
-            'chart_html': chart_html,
+            'chart_data': analysis_data['chart_data'],
             'metadata': {
                 'league_id': league_id,
                 'analysis_type': 'luck',
                 'chart_type': 'bar',
                 'num_teams': len(league.teams),
                 'num_weeks': league.num_weeks,
-                'summary': luck_dic
+                'summary': analysis_data['summary']
             }
         }
         
@@ -306,16 +311,17 @@ def luck_analysis(request, league_id):
 
 @api_view(['GET'])
 def bonage_analysis(request, league_id):
-    """Get bonage analysis chart"""
+    """Get bonage analysis data"""
     try:
         league, error = _get_cached_league(league_id, 'scoring')
         if error:
             return Response(error, status=status.HTTP_404_NOT_FOUND)
         
-        chart_html = league.get_bonage_graph()
+        # Get the raw data instead of HTML
+        chart_data = league.get_bonage_data()
         
         response_data = {
-            'chart_html': chart_html,
+            'chart_data': chart_data,
             'metadata': {
                 'league_id': league_id,
                 'analysis_type': 'bonage',
@@ -336,16 +342,17 @@ def bonage_analysis(request, league_id):
 
 @api_view(['GET'])
 def consistency_analysis(request, league_id):
-    """Get consistency analysis chart"""
+    """Get consistency analysis data"""
     try:
         league, error = _get_cached_league(league_id, 'scoring')
         if error:
             return Response(error, status=status.HTTP_404_NOT_FOUND)
         
-        chart_html = league.get_consistency_graph()
+        # Get the raw data instead of HTML
+        chart_data = league.get_consistency_data()
         
         response_data = {
-            'chart_html': chart_html,
+            'chart_data': chart_data,
             'metadata': {
                 'league_id': league_id,
                 'analysis_type': 'consistency',
