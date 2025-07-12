@@ -202,13 +202,14 @@ def assemble_draft_league(request):
 
 def _get_cached_league(league_id, assembly_type):
     """Helper function to retrieve cached league object"""
-    cache_key = f"league_{assembly_type}_{league_id}"
-    league = cache.get(cache_key)
+    # Try both assembly types since leagues can be cached under either key
+    for cache_type in [assembly_type, 'scoring', 'draft']:
+        cache_key = f"league_{cache_type}_{league_id}"
+        league = cache.get(cache_key)
+        if league is not None:
+            return league, None
     
-    if league is None:
-        return None, {'error': f'League {league_id} not found or expired'}
-    
-    return league, None
+    return None, {'error': f'League {league_id} not found or expired'}
 
 
 @api_view(['GET'])
@@ -401,7 +402,13 @@ def sleepers_analysis(request, league_id):
         if error:
             return Response(error, status=status.HTTP_404_NOT_FOUND)
         
-        sleepers_dict = league.get_sleepers()
+        try:
+            sleepers_dict = league.get_sleepers()
+        except ValueError as e:
+            return Response(
+                {'error': str(e), 'solution': 'Call /process-draft/ endpoint first'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         # Convert Player objects to serializable data
         sleepers_data = []
@@ -438,7 +445,13 @@ def positional_ranks_analysis(request, league_id):
         if error:
             return Response(error, status=status.HTTP_404_NOT_FOUND)
         
-        chart_html = league.get_pos_rank_through_draft_graph()
+        try:
+            chart_html = league.get_pos_rank_through_draft_graph()
+        except ValueError as e:
+            return Response(
+                {'error': str(e), 'solution': 'Call /process-draft/ endpoint first'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         response_data = {
             'chart_html': chart_html,
@@ -468,7 +481,13 @@ def draft_injury_analysis(request, league_id):
         if error:
             return Response(error, status=status.HTTP_404_NOT_FOUND)
         
-        draft_table_dict = league.get_draft_injury_table()
+        try:
+            draft_table_dict = league.get_draft_injury_table()
+        except ValueError as e:
+            return Response(
+                {'error': str(e), 'solution': 'Call /process-draft/ endpoint first'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         response_data = {
             'data': draft_table_dict,
@@ -486,8 +505,8 @@ def draft_injury_analysis(request, league_id):
         return Response(
             {'error': f'Analysis failed: {str(e)}'}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        ) 
-    
+        )
+ 
 @api_view(['GET'])
 def debug_league_info(request, league_id):
     """
@@ -525,5 +544,45 @@ def debug_league_info(request, league_id):
     except Exception as e:
         return Response(
             {'error': f'Debug failed: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+def process_draft_data(request, league_id):
+    """
+    Process draft data for an existing league.
+    Requires the league to be already assembled.
+    """
+    try:
+        # Try to get the league from cache using the helper function
+        league, error = _get_cached_league(league_id, 'scoring')
+        if error:
+            return Response(error, status=status.HTTP_404_NOT_FOUND)
+        
+        # Process draft data based on platform
+        if league.platform == 'espn':
+            league.process_draft_espn()
+        elif league.platform == 'sleeper':
+            league.process_draft_sleeper()
+        else:
+            return Response(
+                {'error': f'Unsupported platform: {league.platform}'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Cache the updated league object with draft data
+        cache_key = f"league_draft_{league_id}"
+        cache.set(cache_key, league, timeout=86400)  # Cache for 24 hours
+        
+        return Response({
+            'league_id': league_id,
+            'status': 'draft_processed',
+            'platform': league.platform
+        })
+        
+    except Exception as e:
+        return Response(
+            {'error': f'Draft processing failed: {str(e)}'}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )

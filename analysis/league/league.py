@@ -26,6 +26,9 @@ class League:
         self.progress_id = progress_id
         self.progress_callback = progress_callback
         
+        # Initialize draft_rounds to prevent AttributeError
+        self.draft_rounds = {}
+        
         if self.num_weeks < 1:
             print(f"Warning: num_weeks is {self.num_weeks}, setting to 1")
             self.num_weeks = 1
@@ -81,7 +84,18 @@ class League:
                 self.teams[home_id].append_opp_id(away_id)
                 self.teams[away_id].append_opp_id(home_id)
         
-        self._construct_draft_espn(league)
+        # Store league object for later draft processing
+        self.espn_league_obj = league
+
+    def process_draft_espn(self):
+        """Process draft data for ESPN leagues - called separately from constructor"""
+        if not hasattr(self, 'espn_league_obj'):
+            raise ValueError("ESPN league object not available for draft processing")
+        
+        self._construct_draft_espn(self.espn_league_obj)
+        self._process_draft_data()
+        # Clean up the stored league object
+        delattr(self, 'espn_league_obj')
 
     def _construct_draft_espn(self, league):
         # all draft picks
@@ -201,9 +215,20 @@ class League:
                 else:
                     matchcup_dic[m_id] = r_id
 
+        # Store league_id for later draft processing
+        self.sleeper_league_id = league_id
+
+    def process_draft_sleeper(self):
+        """Process draft data for Sleeper leagues - called separately from constructor"""
+        if not hasattr(self, 'sleeper_league_id'):
+            raise ValueError("Sleeper league ID not available for draft processing")
+        
         self._update_progress("Processing draft data...", 80)
-        self._construct_draft_sleeper(league_id)
+        self._construct_draft_sleeper(self.sleeper_league_id)
+        self._process_draft_data()
         self._update_progress("Finalizing league data...", 95)
+        # Clean up the stored league ID
+        delattr(self, 'sleeper_league_id')
 
     def _construct_draft_sleeper(self, league_id):
         print('constructing draft')
@@ -299,6 +324,12 @@ class League:
             ew_list  = [round((self.num_teams - r) / (self.num_teams - 1), 2) for r in t.get_rank_list() ]
             t.set_ew_list(ew_list)
 
+    def _process_draft_data(self):
+        """Process draft data - called after draft construction"""
+        # Initialize draft_rounds if not already done
+        if not hasattr(self, 'draft_rounds'):
+            self.draft_rounds = {}
+        
         # sort drafts
         # general league 
         for r, draft_round_dict in self.draft_rounds.items():
@@ -380,6 +411,9 @@ class League:
         return figHTML
     
     def get_sleepers(self):
+        if not hasattr(self, 'draft_rounds') or not self.draft_rounds:
+            raise ValueError("Draft data not available. Please process draft data first.")
+        
         position_picks_dic = {}
         for draft_round in self.draft_rounds.values():
             for p in draft_round.values():
@@ -395,12 +429,17 @@ class League:
         return sleeper_dict
 
     def get_draft_injury_table(self):
+        if not hasattr(self, 'draft_rounds') or not self.draft_rounds:
+            raise ValueError("Draft data not available. Please process draft data first.")
+        
         draft_table_dict = {i : {j : list() for j in self.teams.keys()} for i in range(1, len(self.draft_rounds) + 1)}
 
         for round_num, picks in self.draft_rounds.items():
             for pick_num, p in picks.items():
                 draft_table_dict[round_num][p.on_team_id].append({'name': p.name, 'percent_injured': p.percent_injured})
-    
+        
+        return draft_table_dict
+
     def _create_rank_list(self, num_list):
         ranked_list = [1]
         for i, cur_score in enumerate(num_list):
@@ -582,6 +621,9 @@ class League:
         return figHTML
     
     def get_pos_rank_through_draft_graph(self):
+        if not hasattr(self, 'draft_rounds') or not self.draft_rounds:
+            raise ValueError("Draft data not available. Please process draft data first.")
+        
         pos_rank_avg = list()
         for d_round in self.draft_rounds.values():
             pos_rank_list = [p.pos_rank for p in  d_round.values()]

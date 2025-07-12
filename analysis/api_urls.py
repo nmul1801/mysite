@@ -10,6 +10,9 @@ urlpatterns = [
     # Progress tracking
     path('progress/<str:assembly_id>/', api_views.get_progress, name='get_progress'),
     
+    # Draft processing endpoint
+    path('leagues/<str:league_id>/process-draft/', api_views.process_draft_data, name='process_draft_data'),
+    
     # Scoring analysis endpoints
     path('leagues/<str:league_id>/scoring/expected-wins/', api_views.expected_wins_analysis, name='expected_wins_analysis'),
     path('leagues/<str:league_id>/scoring/ew-difference/', api_views.ew_difference_analysis, name='ew_difference_analysis'),

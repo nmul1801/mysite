@@ -1,0 +1,117 @@
+=== API Test Log - 2025-07-12 17:01:08 ===
+
+🧪 Starting Comprehensive API Testing
+============================================================
+🔧 Testing Assembly Endpoints...
+============================================================
+
+📊 Testing ESPN League 1: ESPN League 1
+✅ ESPN Scoring Assembly (ESPN League 1): 6.44s
+✅ ESPN Draft Assembly (ESPN League 1): 6.25s
+
+📊 Testing ESPN League 2: ESPN League 2
+✅ ESPN Scoring Assembly (ESPN League 2): 7.05s
+✅ ESPN Draft Assembly (ESPN League 2): 6.07s
+
+📊 Testing Sleeper League 1: Original Test League
+✅ Sleeper Scoring Assembly (Original Test League): 2.39s
+
+📊 Testing Sleeper League 2: Boys League
+✅ Sleeper Scoring Assembly (Boys League): 5.23s
+
+📊 Testing Sleeper League 3: Normal League 1
+✅ Sleeper Scoring Assembly (Normal League 1): 5.94s
+
+📊 Testing Sleeper League 4: Normal League 2
+✅ Sleeper Scoring Assembly (Normal League 2): 4.56s
+
+📊 Testing Sleeper League 5: Normal League 3
+✅ Sleeper Scoring Assembly (Normal League 3): 5.08s
+
+📊 Testing Sleeper League 6: Dynasty League
+✅ Sleeper Scoring Assembly (Dynasty League): 10.37s
+
+🔄 Testing Draft Separation Workflow...
+============================================================
+
+📊 Testing Draft Separation - Original Test League
+1. Assembling basic league (scores and teams only)...
+✅ League assembled successfully: scoring_1103905062545362944_sleeper_6455a496
+2. Checking debug info (should show no draft data)...
+✅ Debug info retrieved: 12 teams, 12 weeks
+   Assembly type: scoring
+3. Testing draft analysis access (should fail)...
+✅ Draft analysis correctly blocked: Draft data not available. Please process draft data first.
+   Solution: Call /process-draft/ endpoint first
+4. Processing draft data separately...
+✅ Draft processing successful: draft_processed
+   Platform: sleeper
+5. Testing draft analysis access (should work now)...
+✅ Draft analysis successful: 4 sleepers found
+   - RB: Bucky Irving
+   - WR: Jerry Jeudy
+   - QB: Baker Mayfield
+   - TE: Brock Bowers
+6. Testing scoring analysis (should work regardless)...
+✅ Scoring analysis successful: expected_wins
+
+📊 Testing Draft Separation - Boys League
+1. Assembling basic league (scores and teams only)...
+✅ League assembled successfully: scoring_988223204793614336_sleeper_f18b48be
+2. Checking debug info (should show no draft data)...
+✅ Debug info retrieved: 12 teams, 12 weeks
+   Assembly type: scoring
+3. Testing draft analysis access (should fail)...
+✅ Draft analysis correctly blocked: Draft data not available. Please process draft data first.
+   Solution: Call /process-draft/ endpoint first
+4. Processing draft data separately...
+✅ Draft processing successful: draft_processed
+   Platform: sleeper
+5. Testing draft analysis access (should work now)...
+✅ Draft analysis successful: 4 sleepers found
+   - WR: Nico Collins
+   - TE: Sam LaPorta
+   - RB: De'Von Achane
+   - QB: Kyler Murray
+6. Testing scoring analysis (should work regardless)...
+✅ Scoring analysis successful: expected_wins
+
+📊 Testing Scoring Analysis Endpoints...
+============================================================
+✅ Expected Wins Analysis: 0.05s
+✅ EW Difference Analysis: 0.04s
+✅ Luck Analysis: 0.04s
+✅ Bonage Analysis: 0.05s
+✅ Consistency Analysis: 0.05s
+✅ Probability Curve Analysis: 0.04s
+
+📋 Testing Draft Analysis Endpoints...
+============================================================
+⚠️ Sleepers Analysis: Draft data not available (expected for this test)
+⚠️ Positional Ranks Analysis: Draft data not available (expected for this test)
+✅ Draft Injury Analysis: 0.0s
+
+🐛 Testing Debug Endpoint...
+============================================================
+✅ Debug endpoint working!
+   Teams: 10
+   Weeks: 12
+   Assembly Type: scoring
+
+🌊 Testing Streaming Assembly...
+============================================================
+✅ Streaming assembly initiated: 8.81s
+
+📋 Test Summary
+============================================================
+Total Tests: 29
+Successful: 29
+Failed: 0
+Success Rate: 100.0%
+
+⏱️ Performance Summary:
+   Average Response Time: 3.49s
+   Fastest Response: 0.00s
+   Slowest Response: 16.18s
+
+📄 Full results logged to: test_logs.txt
