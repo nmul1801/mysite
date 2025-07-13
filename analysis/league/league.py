@@ -742,6 +742,64 @@ class League:
             'avg_points': avg_points
         }
 
+    def get_probability_curve_data(self):
+        """Get probability curve data for frontend chart rendering"""
+        # Function to calculate the probability density function (PDF) of the normal distribution
+        def normal_pdf(x, mean, standard_deviation):
+            return 1 / (standard_deviation * np.sqrt(2 * np.pi)) * np.exp(-0.5 * ((x - mean) / standard_deviation)**2)
+
+        num_games = self.num_weeks
+        p = 0.5
+        var = num_games * p * (1 - p)
+        
+        # Ensure variance is positive
+        if var <= 0:
+            print(f"Warning: variance in probdcurve is {var}, using fallback calculation")
+            var = 1 * p * (1 - p)  # This equals 0.25
+
+        mean = 0  # Mean of the distribution
+        standard_deviation = np.sqrt(var)  # Standard deviation of the distribution
+        x_values = np.linspace(-5, 5, 100)  # Adjust range as needed
+        y_values = [normal_pdf(x, mean, standard_deviation) for x in x_values]
+
+        # Check if lucky_team_ew_diff is set, if not calculate it
+        if not hasattr(self, 'lucky_team_ew_diff') or not hasattr(self, 'lucky_team'):
+            # Calculate the luckiest team
+            ew_diff_dict = {t.id : sum(t.get_wins()) - sum(t.get_ew_list()) for t in self.teams.values()}
+            ew_diff_dict = dict(sorted(ew_diff_dict.items(), key=lambda x: x[1], reverse=True))
+            
+            if len(ew_diff_dict) > 0:
+                lucky_team_id = list(ew_diff_dict.items())[0][0]
+                self.lucky_team = self.teams[lucky_team_id]
+                self.lucky_team_ew_diff = round(sum(self.lucky_team.get_wins()) - sum(self.lucky_team.get_ew_list()), 2)
+            else:
+                # Fallback if no teams
+                self.lucky_team_ew_diff = 0
+                self.lucky_team = None
+
+        x_shade = self.lucky_team_ew_diff
+
+        # Generate the x and y values for shading
+        x_shade_values = np.linspace(-5, x_shade, 1000)
+        y_shade_values = [normal_pdf(x, mean, standard_deviation) for x in x_shade_values]
+
+        area_under_curve = simps(y_shade_values, x_shade_values)
+
+        # Prepare summary data
+        summary = {
+            'lucky_team_ew_diff': self.lucky_team_ew_diff,
+            'area_under_curve': area_under_curve,
+            'team_name': self.lucky_team.get_name() if self.lucky_team else 'Unknown'
+        }
+
+        return {
+            'chart_data': {
+                'x_values': x_values.tolist(),
+                'y_values': y_values
+            },
+            'summary': summary
+        }
+
     def get_consistency_graph(self):
         df = pd.DataFrame()
 
@@ -924,3 +982,118 @@ class League:
         fig_html = fig.to_html(full_html=False, config={'scrollZoom': False, 'displayModeBar': False})
 
         return fig_html
+
+    def get_sleepers_data(self):
+        """Get sleepers analysis data for frontend chart rendering"""
+        if not hasattr(self, 'draft_rounds') or not self.draft_rounds:
+            raise ValueError("Draft data not available. Please process draft data first.")
+        
+        position_picks_dic = {}
+        for draft_round in self.draft_rounds.values():
+            for p in draft_round.values():
+                if p.position in position_picks_dic:
+                    position_picks_dic[p.position].append(p)
+                    p.position_pick = len(position_picks_dic[p.position])
+                else:
+                    p.position_pick = 1
+                    position_picks_dic[p.position] = [p]
+                p.set_position_pick()
+                p.sleeper_score = p.position_pick - p.pos_rank
+        
+        sleeper_dict = {pos : max(position_picks_dic[pos], key=lambda x: x.sleeper_score) for pos in position_picks_dic}
+        
+        # Prepare data for frontend
+        chart_data = {
+            'positions': [],
+            'player_names': [],
+            'sleeper_scores': [],
+            'player_ids': [],
+            'position_picks': [],
+            'positional_ranks': [],
+            'first_initials': [],
+            'last_names': []
+        }
+        
+        for position, player in sleeper_dict.items():
+            chart_data['positions'].append(position)
+            chart_data['player_names'].append(player.name)
+            chart_data['sleeper_scores'].append(player.sleeper_score)
+            chart_data['player_ids'].append(player.id)
+            chart_data['position_picks'].append(player.position_pick)
+            chart_data['positional_ranks'].append(player.pos_rank)
+            
+            # Split name into first initial and last name
+            name_parts = player.name.split()
+            if len(name_parts) >= 2:
+                chart_data['first_initials'].append(name_parts[0][0] + '.')
+                chart_data['last_names'].append(' '.join(name_parts[1:]))
+            else:
+                chart_data['first_initials'].append(player.name[0] + '.')
+                chart_data['last_names'].append(player.name[1:] if len(player.name) > 1 else '')
+        
+        return chart_data
+
+    def get_positional_ranks_data(self):
+        """Get positional ranks analysis data for frontend chart rendering"""
+        if not hasattr(self, 'draft_rounds') or not self.draft_rounds:
+            raise ValueError("Draft data not available. Please process draft data first.")
+        
+        pos_rank_avg = []
+        for d_round in self.draft_rounds.values():
+            pos_rank_list = [p.pos_rank for p in d_round.values()]
+            pos_rank_avg.append(sum(pos_rank_list) / len(pos_rank_list))
+        
+        # Prepare data for frontend
+        chart_data = {
+            'draft_rounds': list(range(1, len(pos_rank_avg) + 1)),
+            'avg_positional_ranks': pos_rank_avg
+        }
+        
+        return chart_data
+
+    def get_draft_injury_data(self):
+        """Get draft injury analysis data for frontend chart rendering"""
+        if not hasattr(self, 'draft_rounds') or not self.draft_rounds:
+            raise ValueError("Draft data not available. Please process draft data first.")
+        
+        color_list = ['black', 'red', '#f13600', '#e36500', '#d58e00', '#c7b000', '#a4b800', '#72aa00', '#459c00', '#208e00', 'green']
+
+        draft_table_dict = {i : {j : list() for j in self.teams.keys()} for i in range(1, len(self.draft_rounds) + 1)}
+
+        for round_num, picks in self.draft_rounds.items():
+            for pick_num, p in picks.items():
+                ind = 9 - int(p.percent_injured * 10 * 2)
+                ind = 0 if ind < 0 else ind
+                c = color_list[ind]
+
+                draft_table_dict[round_num][p.on_team_id].append({
+                    'name': p.name, 
+                    'percent_inj': round(p.percent_injured * 100, 2), 
+                    'id': p.id, 
+                    'bg_color': c
+                })
+        
+        for round_num, picks in draft_table_dict.items():
+            max_length = max([len(l) for l in list(picks.values())])
+            for team_id in picks:
+                picks[team_id] += [None] * (max_length - len(picks[team_id]))
+
+        draft_adjusted_dic = {r_num : [] for r_num in draft_table_dict}
+        for round_num, picks in draft_table_dict.items():
+            picks_list = list(picks.values())
+            for i in range(len(picks_list[0])):
+                pick_series = []
+                for team_picks in picks_list:
+                    pick_series.append(team_picks[i])
+                draft_adjusted_dic[round_num].append(pick_series)
+        
+        # Get team names in the same order as the picks
+        team_names = []
+        team_ids = list(self.teams.keys())
+        for team_id in team_ids:
+            team_names.append(self.teams[team_id].get_name())
+        
+        return {
+            'draft_data': draft_adjusted_dic,
+            'team_names': team_names
+        }

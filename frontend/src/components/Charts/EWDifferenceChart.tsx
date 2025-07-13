@@ -1,6 +1,7 @@
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import type { ChartData } from '../../services/types';
+import { useResponsiveChart } from '../../hooks/useResponsiveChart';
 
 interface EWDifferenceChartProps {
   data: ChartData;
@@ -18,6 +19,8 @@ interface EWDifferenceChartProps {
 }
 
 export const EWDifferenceChart: React.FC<EWDifferenceChartProps> = ({ data, title, summary }) => {
+  const { fontSize, angle, height } = useResponsiveChart();
+
   if (!data || !data.teams || !data.ew_difference) {
     return (
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
@@ -57,19 +60,23 @@ export const EWDifferenceChart: React.FC<EWDifferenceChartProps> = ({ data, titl
         </div>
       )}
       
-      <div className="w-full h-80">
+      <div className="w-full h-96">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis 
               dataKey="team" 
-              angle={-45}
+              angle={angle}
               textAnchor="end"
-              height={80}
+              height={height}
               interval={0}
+              tick={{ fontSize }}
             />
-            <YAxis />
-            <Tooltip />
+            <YAxis 
+              label={{ value: 'Wins - Expected Wins', angle: -90, position: 'insideLeft' }}
+              tick={{ fontSize }}
+            />
+            <Tooltip formatter={(value) => [Number(value).toFixed(2), 'EW Difference']} />
             <Bar 
               dataKey="ew_difference"
               fill="#574D68"

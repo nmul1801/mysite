@@ -24,6 +24,32 @@ export interface ChartData {
   // Consistency data
   consistency_scores?: number[];
   avg_points?: number[];
+  // Draft analysis data
+  positions?: string[];
+  player_names?: string[];
+  sleeper_scores?: number[];
+  player_ids?: string[];
+  position_picks?: number[];
+  positional_ranks?: number[];
+  first_initials?: string[];
+  last_names?: string[];
+  draft_rounds?: number[];
+  avg_positional_ranks?: number[];
+  // Draft injury data - complex nested structure
+  draft_injury_data?: {
+    draft_data?: Record<string, Array<Array<{
+      name: string;
+      percent_inj: number;
+      id: string;
+      bg_color: string;
+    } | null>>>;
+    team_names?: string[];
+  } | Record<string, Array<Array<{
+    name: string;
+    percent_inj: number;
+    id: string;
+    bg_color: string;
+  } | null>>>;
 }
 
 export interface AnalysisResponse {
@@ -72,4 +98,11 @@ export interface DraftProcessingResponse {
   league_id: string;
   status: string;
   platform: string;
+}
+
+export interface ProgressUpdate {
+  type: 'progress' | 'complete' | 'error';
+  message: string;
+  percent: number;
+  error?: string;
 } 

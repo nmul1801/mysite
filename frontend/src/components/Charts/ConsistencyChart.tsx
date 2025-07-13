@@ -26,7 +26,7 @@ export const ConsistencyChart: React.FC<ConsistencyChartProps> = ({ data, title 
   return (
     <div className="w-full">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>
-      <div className="w-full h-80">
+      <div className="w-full h-[28rem]">
         <ResponsiveContainer width="100%" height="100%">
           <ScatterChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -34,19 +34,38 @@ export const ConsistencyChart: React.FC<ConsistencyChartProps> = ({ data, title 
               dataKey="avg_points" 
               name="Average Points Per Week"
               type="number"
+              label={{ value: 'Average Points Per Week', position: 'bottom', offset: -7 }}
+              domain={['dataMin - 5', 'dataMax + 5']}
+              tickFormatter={(value) => Math.round(value).toString()}
             />
             <YAxis 
               dataKey="consistency_score" 
               name="Consistency Score"
               type="number"
+              label={{ value: 'Consistency Score (%)', angle: -90, position: 'insideLeft' }}
+              domain={['dataMin - 5', 'dataMax + 5']}
+              tickFormatter={(value) => Math.round(value).toString()}
             />
             <ZAxis dataKey="team" />
             <Tooltip 
               cursor={{ strokeDasharray: '3 3' }}
-              formatter={(value, name, props) => [
-                `${props.payload.team}: ${value}`,
-                name === 'consistency_score' ? 'Consistency Score' : 'Average Points'
-              ]}
+              content={({ active, payload }) => {
+                if (active && payload && payload.length) {
+                  const data = payload[0].payload;
+                  return (
+                    <div className="bg-white p-3 border border-gray-300 rounded shadow-lg">
+                      <p className="font-medium">{data.team}</p>
+                      <p className="text-sm text-gray-600">
+                        Average Points: {Number(data.avg_points).toFixed(2)}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Consistency Score: {Number(data.consistency_score).toFixed(2)}%
+                      </p>
+                    </div>
+                  );
+                }
+                return null;
+              }}
             />
             <Scatter 
               dataKey="consistency_score" 

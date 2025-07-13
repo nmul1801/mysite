@@ -1,6 +1,7 @@
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import type { ChartData } from '../../services/types';
+import { useResponsiveChart } from '../../hooks/useResponsiveChart';
 
 interface BonageChartProps {
   data: ChartData;
@@ -8,6 +9,8 @@ interface BonageChartProps {
 }
 
 export const BonageChart: React.FC<BonageChartProps> = ({ data, title }) => {
+  const { fontSize, angle, height } = useResponsiveChart();
+
   if (!data || !data.teams || !data.bi || !data.weeks) {
     return (
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
@@ -39,19 +42,23 @@ export const BonageChart: React.FC<BonageChartProps> = ({ data, title }) => {
   return (
     <div className="w-full">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>
-      <div className="w-full h-80">
+      <div className="w-full h-96">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis 
               dataKey="team" 
-              angle={-45}
+              angle={angle}
               textAnchor="end"
-              height={80}
+              height={height}
               interval={0}
+              tick={{ fontSize }}
             />
-            <YAxis />
-            <Tooltip />
+            <YAxis 
+              label={{ value: 'Strength of Schedule (BI)', angle: -90, position: 'insideLeft' }}
+              tick={{ fontSize }}
+            />
+            <Tooltip formatter={(value) => [Number(value).toFixed(2), 'BI']} />
             {uniqueWeeks.map((week, index) => (
               <Bar 
                 key={week}

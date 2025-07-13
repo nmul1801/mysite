@@ -82,11 +82,6 @@ export const leagueApi = {
     return response.data;
   },
 
-  getProbabilityCurve: async (leagueId: string): Promise<AnalysisResponse> => {
-    const response = await api.get(`/leagues/${leagueId}/scoring/probability-curve/`);
-    return response.data;
-  },
-
   // Draft analysis endpoints
   getSleepers: async (leagueId: string): Promise<AnalysisResponse> => {
     const response = await api.get(`/leagues/${leagueId}/draft/sleepers/`);

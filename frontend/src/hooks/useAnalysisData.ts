@@ -33,12 +33,6 @@ export const useAnalysisData = (leagueId: string | null) => {
     enabled: !!leagueId,
   });
 
-  const probabilityCurveQuery = useQuery({
-    queryKey: ['probability-curve', leagueId],
-    queryFn: () => leagueApi.getProbabilityCurve(leagueId!),
-    enabled: !!leagueId,
-  });
-
   // Draft Analysis Queries
   const sleepersQuery = useQuery({
     queryKey: ['sleepers', leagueId],
@@ -74,7 +68,6 @@ export const useAnalysisData = (leagueId: string | null) => {
     luck: luckQuery,
     bonage: bonageQuery,
     consistency: consistencyQuery,
-    probabilityCurve: probabilityCurveQuery,
     
     // Draft Analysis
     sleepers: sleepersQuery,

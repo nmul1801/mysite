@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { leagueApi } from '../services/api';
-import type { LeagueAssemblyRequest, LeagueAssemblyResponse, ProgressUpdate } from '../services/types';
+import type { LeagueAssemblyRequest, ProgressUpdate } from '../services/types';
 
 export const useLeagueAssembly = () => {
   const [progress, setProgress] = useState<ProgressUpdate | null>(null);
@@ -62,7 +62,12 @@ export const useLeagueAssembly = () => {
       }
     } catch (error) {
       console.error('Streaming assembly failed:', error);
-      setProgress({ type: 'error', error: error instanceof Error ? error.message : 'Unknown error' });
+      setProgress({ 
+        type: 'error', 
+        message: error instanceof Error ? error.message : 'Unknown error',
+        percent: 0,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     } finally {
       setIsStreaming(false);
     }

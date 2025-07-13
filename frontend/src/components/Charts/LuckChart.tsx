@@ -1,6 +1,7 @@
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import type { ChartData } from '../../services/types';
+import { useResponsiveChart } from '../../hooks/useResponsiveChart';
 
 interface LuckChartProps {
   data: ChartData;
@@ -13,6 +14,8 @@ interface LuckChartProps {
 }
 
 export const LuckChart: React.FC<LuckChartProps> = ({ data, title, summary }) => {
+  const { fontSize, angle, height } = useResponsiveChart();
+
   if (!data || !data.teams || !data.likelihood) {
     return (
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
@@ -53,19 +56,23 @@ export const LuckChart: React.FC<LuckChartProps> = ({ data, title, summary }) =>
         </div>
       )}
       
-      <div className="w-full h-80">
+      <div className="w-full h-96">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis 
               dataKey="team" 
-              angle={-45}
+              angle={angle}
               textAnchor="end"
-              height={80}
+              height={height}
               interval={0}
+              tick={{ fontSize }}
             />
-            <YAxis />
-            <Tooltip />
+            <YAxis 
+              label={{ value: 'Likelihood of Performing Worse (%)', angle: -90, position: 'insideLeft' }}
+              tick={{ fontSize }}
+            />
+            <Tooltip formatter={(value) => [Number(value).toFixed(2) + '%', 'Likelihood']} />
             <ReferenceLine y={50} stroke="red" strokeDasharray="3 3" label="Line of Luck" />
             <Bar 
               dataKey="likelihood"

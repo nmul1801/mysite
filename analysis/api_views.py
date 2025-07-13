@@ -373,22 +373,24 @@ def consistency_analysis(request, league_id):
 
 @api_view(['GET'])
 def probability_curve_analysis(request, league_id):
-    """Get probability curve analysis chart"""
+    """Get probability curve analysis data"""
     try:
         league, error = _get_cached_league(league_id, 'scoring')
         if error:
             return Response(error, status=status.HTTP_404_NOT_FOUND)
         
-        chart_html = league.get_probdcurve()
+        # Get the raw data instead of HTML
+        analysis_data = league.get_probability_curve_data()
         
         response_data = {
-            'chart_html': chart_html,
+            'chart_data': analysis_data['chart_data'],
             'metadata': {
                 'league_id': league_id,
                 'analysis_type': 'probability_curve',
                 'chart_type': 'line',
                 'num_teams': len(league.teams),
-                'num_weeks': league.num_weeks
+                'num_weeks': league.num_weeks,
+                'summary': analysis_data['summary']
             }
         }
         
@@ -410,26 +412,19 @@ def sleepers_analysis(request, league_id):
             return Response(error, status=status.HTTP_404_NOT_FOUND)
         
         try:
-            sleepers_dict = league.get_sleepers()
+            analysis_data = league.get_sleepers_data()
         except ValueError as e:
             return Response(
                 {'error': str(e), 'solution': 'Call /process-draft/ endpoint first'}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Convert Player objects to serializable data
-        sleepers_data = []
-        for position, player in sleepers_dict.items():
-            sleepers_data.append([
-                position,
-                player.name if hasattr(player, 'name') else str(player)
-            ])
-        
         response_data = {
-            'data': sleepers_data,
+            'chart_data': analysis_data,
             'metadata': {
                 'league_id': league_id,
                 'analysis_type': 'sleepers',
+                'chart_type': 'bar',
                 'num_teams': len(league.teams),
                 'num_weeks': league.num_weeks
             }
@@ -446,14 +441,14 @@ def sleepers_analysis(request, league_id):
 
 @api_view(['GET'])
 def positional_ranks_analysis(request, league_id):
-    """Get positional ranks analysis chart"""
+    """Get positional ranks analysis data"""
     try:
         league, error = _get_cached_league(league_id, 'draft')
         if error:
             return Response(error, status=status.HTTP_404_NOT_FOUND)
         
         try:
-            chart_html = league.get_pos_rank_through_draft_graph()
+            analysis_data = league.get_positional_ranks_data()
         except ValueError as e:
             return Response(
                 {'error': str(e), 'solution': 'Call /process-draft/ endpoint first'}, 
@@ -461,7 +456,7 @@ def positional_ranks_analysis(request, league_id):
             )
         
         response_data = {
-            'chart_html': chart_html,
+            'chart_data': analysis_data,
             'metadata': {
                 'league_id': league_id,
                 'analysis_type': 'positional_ranks',
@@ -489,7 +484,7 @@ def draft_injury_analysis(request, league_id):
             return Response(error, status=status.HTTP_404_NOT_FOUND)
         
         try:
-            draft_table_dict = league.get_draft_injury_table()
+            analysis_data = league.get_draft_injury_data()
         except ValueError as e:
             return Response(
                 {'error': str(e), 'solution': 'Call /process-draft/ endpoint first'}, 
@@ -497,10 +492,11 @@ def draft_injury_analysis(request, league_id):
             )
         
         response_data = {
-            'data': draft_table_dict,
+            'chart_data': {'draft_injury_data': analysis_data},
             'metadata': {
                 'league_id': league_id,
                 'analysis_type': 'draft_injury',
+                'chart_type': 'table',
                 'num_teams': len(league.teams),
                 'num_weeks': league.num_weeks
             }

@@ -7,6 +7,9 @@ import { EWDifferenceChart } from '../components/Charts/EWDifferenceChart';
 import { LuckChart } from '../components/Charts/LuckChart';
 import { BonageChart } from '../components/Charts/BonageChart';
 import { ConsistencyChart } from '../components/Charts/ConsistencyChart';
+import { SleepersTable } from '../components/Charts/SleepersTable';
+import { PositionalRanksChart } from '../components/Charts/PositionalRanksChart';
+import { DraftInjuryTable } from '../components/Charts/DraftInjuryTable';
 import toast from 'react-hot-toast';
 
 // Extend Window interface to include Plotly
@@ -64,8 +67,11 @@ export const Analysis = () => {
     try {
       await leagueApi.processDraft(leagueId);
       toast.success('Draft processing completed!');
+      
       // Refetch draft analysis data
-      analysisData.processDraft.reset();
+      analysisData.sleepers.refetch();
+      analysisData.positionalRanks.refetch();
+      analysisData.draftInjury.refetch();
     } catch (error) {
       toast.error('Failed to process draft data');
       console.error('Draft processing error:', error);
@@ -100,7 +106,7 @@ export const Analysis = () => {
           ref={(el) => {
             chartRefs.current[chartId] = el;
           }}
-          className="w-full h-96 overflow-hidden"
+          className="w-full h-100 overflow-hidden"
           style={{ minHeight: '400px' }}
           dangerouslySetInnerHTML={{ __html: chartHtml }}
         />
@@ -221,6 +227,69 @@ export const Analysis = () => {
     }
   };
 
+  const renderSleepersChart = (data: any, title: string) => {
+    if (data.chart_data) {
+      return (
+        <div className="card">
+          <SleepersTable data={data.chart_data} title={title} />
+        </div>
+      );
+    } else if (data.chart_html) {
+      return renderChart(data.chart_html, title);
+    } else {
+      return (
+        <div className="card">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <p className="text-yellow-800">No chart data available</p>
+          </div>
+        </div>
+      );
+    }
+  };
+
+  const renderPositionalRanksChart = (data: any, title: string) => {
+    if (data.chart_data) {
+      return (
+        <div className="card">
+          <PositionalRanksChart data={data.chart_data} title={title} />
+        </div>
+      );
+    } else if (data.chart_html) {
+      return renderChart(data.chart_html, title);
+    } else {
+      return (
+        <div className="card">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <p className="text-yellow-800">No chart data available</p>
+          </div>
+        </div>
+      );
+    }
+  };
+
+  const renderDraftInjuryChart = (data: any, title: string) => {
+    if (data.chart_data) {
+      return (
+        <div className="card">
+          <DraftInjuryTable data={data.chart_data} title={title} />
+        </div>
+      );
+    } else if (data.chart_html) {
+      return renderChart(data.chart_html, title);
+    } else {
+      return (
+        <div className="card">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <p className="text-yellow-800">No chart data available</p>
+          </div>
+        </div>
+      );
+    }
+  };
+
   const renderLoadingState = (title: string) => (
     <div className="card">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>
@@ -231,14 +300,38 @@ export const Analysis = () => {
     </div>
   );
 
-  const renderErrorState = (title: string, error: any) => (
-    <div className="card">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <p className="text-red-800">Failed to load chart: {error?.message || 'Unknown error'}</p>
+  const renderErrorState = (title: string, error: any) => {
+    // Check if this is a draft analysis error that requires processing
+    const isDraftAnalysis = title.includes('Sleepers') || title.includes('Positional Ranks') || title.includes('Draft Injury');
+    const isProcessingError = error?.response?.status === 400 && 
+                             (error?.response?.data?.solution || 
+                              error?.response?.data?.error?.includes('Draft data not available'));
+    
+    if (isDraftAnalysis && isProcessingError) {
+      return (
+        <div className="card">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p className="text-blue-800 mb-2">
+              <strong>Draft data not available.</strong> This analysis requires draft data to be processed first.
+            </p>
+            <p className="text-blue-700 text-sm">
+              Click the "Process Draft Data" button above to analyze your league's draft.
+            </p>
+          </div>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="card">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800">Failed to load chart: {error?.message || 'Unknown error'}</p>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -252,7 +345,7 @@ export const Analysis = () => {
       {/* League ID Input */}
       <div className="card mb-8">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">League ID</h2>
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-4">
           <input
             type="text"
             value={leagueId}
@@ -263,7 +356,7 @@ export const Analysis = () => {
           <button
             onClick={handleProcessDraft}
             disabled={!leagueId || isProcessingDraft}
-            className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+            className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
           >
             {isProcessingDraft ? 'Processing Draft...' : 'Process Draft Data'}
           </button>
@@ -328,14 +421,6 @@ export const Analysis = () => {
                 analysisData.consistency.data,
                 'Consistency Analysis'
               )}
-
-              {/* Probability Curve */}
-              {analysisData.probabilityCurve.isLoading && renderLoadingState('Probability Curve')}
-              {analysisData.probabilityCurve.isError && renderErrorState('Probability Curve', analysisData.probabilityCurve.error)}
-              {analysisData.probabilityCurve.data && renderChart(
-                analysisData.probabilityCurve.data.chart_html || '',
-                'Probability Curve'
-              )}
             </div>
           </div>
 
@@ -346,24 +431,24 @@ export const Analysis = () => {
               {/* Sleepers */}
               {analysisData.sleepers.isLoading && renderLoadingState('Sleepers Analysis')}
               {analysisData.sleepers.isError && renderErrorState('Sleepers Analysis', analysisData.sleepers.error)}
-              {analysisData.sleepers.data && renderChart(
-                analysisData.sleepers.data.chart_html || '',
+              {analysisData.sleepers.data && renderSleepersChart(
+                analysisData.sleepers.data,
                 'Sleepers Analysis'
               )}
 
               {/* Positional Ranks */}
               {analysisData.positionalRanks.isLoading && renderLoadingState('Positional Ranks')}
               {analysisData.positionalRanks.isError && renderErrorState('Positional Ranks', analysisData.positionalRanks.error)}
-              {analysisData.positionalRanks.data && renderChart(
-                analysisData.positionalRanks.data.chart_html || '',
+              {analysisData.positionalRanks.data && renderPositionalRanksChart(
+                analysisData.positionalRanks.data,
                 'Positional Ranks Through Draft'
               )}
 
               {/* Draft Injury */}
               {analysisData.draftInjury.isLoading && renderLoadingState('Draft Injury Analysis')}
               {analysisData.draftInjury.isError && renderErrorState('Draft Injury Analysis', analysisData.draftInjury.error)}
-              {analysisData.draftInjury.data && renderChart(
-                analysisData.draftInjury.data.chart_html || '',
+              {analysisData.draftInjury.data && renderDraftInjuryChart(
+                analysisData.draftInjury.data,
                 'Draft Injury Analysis'
               )}
             </div>
